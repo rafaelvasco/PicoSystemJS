@@ -1,0 +1,25 @@
+#sprite-editor-scene {
+    display: grid;
+    height: 100%;
+    grid-template-columns: 0.5fr 2fr 0.5fr;
+    grid-template-rows: repeat(3, 1fr);
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+#sprite-editor-scene > #sprite-editor {
+    grid-area: 1 / 2 / 4 / 3;
+    align-self: center;
+    justify-self: center;
+}
+
+#sprite-editor-scene > #tool-box {
+    grid-area: 1 / 1 / 4 / 2;;
+    align-self: center;
+}
+
+#sprite-editor-scene > #mod-box {
+    grid-area: 1 / 3 / 4 / 4;
+    align-self: center;
+    justify-self: right;
+}

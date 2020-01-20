@@ -1,10 +1,33 @@
-body {
-    min-height: 100vh;
-    background-color: aquamarine;
+
+/* VARIABLES */
+:root {
+
+    --toolbox-width: 77px;
+    --toolbox-height: 800px;
+    --toolbox-padding: 2px;
+    --toolbox-bg-col: rgb(63,63,63);
+    --toolbox-border-col: rgb(105, 105, 105);
+    --toolbox-shadow-col: rgba(0, 0, 0, 0.27);
+
+    --modbox-width: 77px;
+    --modbox-height: 800px;
+    --modbox-padding: 2px;
+    --modbox-bg-col: rgb(63,63,63);
+    --modbox-border-col: rgb(105, 105, 105);
+    --modbox-shadow-col: rgba(0, 0, 0, 0.27);
 }
 
-.main {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+
+html {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: rgb(37, 37, 37);
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+
 }
