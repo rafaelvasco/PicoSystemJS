@@ -10,6 +10,7 @@ import PenTool from "./PenTool";
 import FillTool from "./FillTool";
 import MoveTool from "./MoveTool";
 import RectTool from "./RectTool";
+import LineTool from "./LineTool";
 
 class MouseEvent {
     constructor() {
@@ -22,7 +23,7 @@ class MouseEvent {
 export default class SpriteEditor extends CanvasElement {
     constructor(width, height) {
         super("sprite-editor", width, height);
-        this._pixelSize = 8;
+        this._pixelSize = 1;
         this._pixmap = Pixmap.create(width, height);
         this._overlay = Pixmap.create(width, height);
         this._bgRect = new Rect(0, 0, width, height);
@@ -50,6 +51,7 @@ export default class SpriteEditor extends CanvasElement {
         this._initializeTools();
         this._recalculateViewCenter();
         this._updateTransformMatrices();
+        //this._pixmap.drawLine2(100, 100, 250, 100, 1, ColorRgba.Black);
         this.paint();
     }
 
@@ -110,10 +112,12 @@ export default class SpriteEditor extends CanvasElement {
         const fill = new FillTool();
         const move = new MoveTool();
         const rect = new RectTool();
+        const line = new LineTool();
         this._registerTool(pen);
         this._registerTool(fill);
         this._registerTool(move);
         this._registerTool(rect);
+        this._registerTool(line);
     }
 
     _registerTool(tool) {

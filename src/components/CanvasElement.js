@@ -52,9 +52,7 @@ export default class CanvasElement extends Element {
         );
 
         this._gfx = this._canvas.getContext("2d", {
-            alpha: true,
-            depth: false,
-            antialias: false
+            alpha: false
         });
         this._gfx.imageSmoothingEnabled = false;
     }

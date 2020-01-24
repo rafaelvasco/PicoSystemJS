@@ -71,3 +71,11 @@
 #tool-box > #rect-btn:active {
     background-color: rgba(83, 185, 151, 0.5);
 }
+
+#tool-box > #line-btn.on {
+    background-color: rgb(185, 183, 83);
+}
+
+#tool-box > #line-btn:active {
+    background-color: rgba(185, 183, 83, 0.5);
+}

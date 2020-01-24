@@ -1,22 +1,41 @@
 import ColorRgba from "./ColorRgba";
-import { HorizontalAnchor, VerticalAnchor } from "./Enums";
+
+class PixelData {
+    constructor(gfx) {
+        this._g = gfx;
+        this.imageData;
+        this.buffer;
+        this.buffer8;
+        this.pixelBuffer;
+        this._curSrcX;
+        this._curSrcY;
+    }
+
+    get(srcX, srcY, srcW, srcH) {
+        this._curSrcX = srcX;
+        this._curSrcY = srcY;
+        this.imageData = this._g.getImageData(srcX, srcY, srcW, srcH);
+        this.pixelBuffer = new Uint32Array(this.imageData.data.buffer);
+        return this.pixelBuffer;
+    }
+
+    put() {
+        this._g.putImageData(this.imageData, this._curSrcX, this._curSrcY);
+    }
+}
 
 export default class Pixmap {
     constructor(width, height) {
         this._canvas = null;
         this._gfx = null;
         this._dataUrl = null;
-        this._pixelBuffer = [[], []];
         this._canvas = document.createElement("canvas");
         this._canvas.width = width;
         this._canvas.height = height;
-
         this._gfx = this._canvas.getContext("2d", {
-            alpha: true,
-            depth: false,
-            antialias: false
+            alpha: true
         });
-
+        this._pixelData = new PixelData(this._gfx);
         this._gfx.imageSmoothingEnabled = false;
     }
 
@@ -80,12 +99,13 @@ export default class Pixmap {
      * @param {*} y
      */
     getColorAt(x, y) {
-        const imageData = this._gfx.getImageData(x, y, 1, 1).data;
+        const pixels = this._pixelData.get(x, y, 1, 1);
+        const pixel = pixels[0];
         return new ColorRgba(
-            imageData[0],
-            imageData[1],
-            imageData[2],
-            imageData[3]
+            pixel & 0x000000ff,
+            (pixel >> 8) & 0x000000ff,
+            (pixel >> 16) & 0x000000ff,
+            (pixel >> 24) & 0x000000ff
         );
     }
 
@@ -105,72 +125,7 @@ export default class Pixmap {
      * @param {*} xAnchor
      * @param {*} yAnchor
      */
-    resize(width, height, xAnchor, yAnchor) {
-        const resizedData = new Uint8ClampedArray(width * height * 4);
-
-        let nX = 0;
-        let nY = 0;
-
-        switch (xAnchor) {
-            default:
-            case HorizontalAnchor.Left:
-                nX = 0;
-                break;
-            case HorizontalAnchor.Center:
-                nX = Math.floor((width - this.width) / 2);
-                break;
-            case HorizontalAnchor.Right:
-                nX = w - this.width;
-                break;
-        }
-
-        switch (yAnchor) {
-            default:
-            case VerticalAnchor.Top:
-                nY = 0;
-                break;
-            case VerticalAnchor.Center:
-                nY = Math.floor((height - this.height) / 2);
-                break;
-            case VerticalAnchor.Bottom:
-                nY = height - this.height;
-                break;
-        }
-
-        const oldData = this._gfx.getImageData(0, 0, this.width, this.height)
-            .data;
-
-        for (let y = 0; y < height; ++y) {
-            const originY = y - nY;
-
-            if (originY < 0 || originY >= this.height) continue;
-
-            for (let x = 0; x < width; ++x) {
-                const originX = x - nX;
-
-                if (originX < 0 || originX >= this.width) continue;
-
-                const originIndex = originY * this.width + originX;
-                const targetIndex = y * width + x;
-                resizedData.set(
-                    [
-                        oldData[originIndex * 4],
-                        oldData[originIndex * 4 + 1],
-                        oldData[originIndex * 4 + 2],
-                        oldData[originIndex * 4 + 3]
-                    ],
-                    targetIndex * 4
-                );
-            }
-        }
-
-        this._canvas.width = width;
-        this._canvas.height = height;
-
-        const newImageData = this._gfx.getImageData(0, 0, width, height);
-        newImageData.data.set(resizedData, 0, 0);
-        this._gfx.putImageData(newImageData, 0, 0);
-    }
+    resize(width, height, xAnchor, yAnchor) {}
 
     /**
      * Crops the Pixmap
@@ -180,10 +135,10 @@ export default class Pixmap {
      * @param {*} h
      */
     crop(x, y, w, h) {
-        const cropData = this._gfx.getImageData(x, y, w, h);
+        this._pixelData.get(x, y, w, h);
         this._canvas.width = w;
         this._canvas.height = h;
-        this._gfx.putImageData(cropData, 0, 0);
+        this._pixelData.put();
     }
 
     /**
@@ -233,24 +188,15 @@ export default class Pixmap {
         const pw = this.width;
         const ph = this.height;
 
-        const newData = new Uint8ClampedArray(pw * ph * 4);
-        const currentData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = currentData.data;
-
+        const data = this._pixelData.get(0, 0, pw, ph);
         for (let y = 0; y < ph; ++y) {
             for (let x = 0; x < pw; ++x) {
-                let co = (y * pw + (pw - x - 1)) * 4;
-                let ci = (y * pw + x) * 4;
-
-                newData.set(
-                    [data[co], data[co + 1], data[co + 2], data[co + 3]],
-                    ci
-                );
+                let co = y * pw + (pw - x - 1);
+                let ci = y * pw + x;
+                data[ci] = data[co];
             }
         }
-
-        data.set(newData);
-        this._gfx.putImageData(currentData, 0, 0);
+        this._pixelData.put();
     }
 
     /**
@@ -260,24 +206,15 @@ export default class Pixmap {
         const pw = this.width;
         const ph = this.height;
 
-        const newData = new Uint8ClampedArray(pw * ph * 4);
-        const currentData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = currentData.data;
-
+        const data = this._pixelData.get(0, 0, pw, ph);
         for (let y = 0; y < ph; y++) {
             for (let x = 0; x < pw; x++) {
                 let co = ((ph - y - 1) * pw + x) * 4;
                 let ci = (y * pw + x) * 4;
-
-                newData.set(
-                    [data[co], data[co + 1], data[co + 2], data[co + 3]],
-                    ci
-                );
+                data[ci] = data[co];
             }
         }
-
-        data.set(newData);
-        this._gfx.putImageData(imageData, 0, 0);
+        this._pixelData.put();
     }
 
     movePixels(dx, dy) {
@@ -294,93 +231,25 @@ export default class Pixmap {
      * @param {*} color
      */
     drawPoint(x, y, size, color) {
-        const colArray = color.array;
-
         const pw = this.width;
         const ph = this.height;
-
+        const pd = this._pixelData;
+        const rgba = color.rgba32;
         if (size === 1) {
             if (x < 0 || y < 0 || x >= pw || y >= ph) {
                 return;
             }
-
-            const imageData = this._gfx.getImageData(x, y, 1, 1);
-            imageData.data.set(colArray, 0);
-            this._gfx.putImageData(imageData, x, y);
+            const data = pd.get(x, y, 1, 1);
+            data[0] = rgba;
+            pd.put(this._gfx);
             return;
         }
-
-        const imageData = this._gfx.getImageData(x, y, size, size);
-        const data = imageData.data;
+        const data = pd.get(x, y, size, size);
         const area = size * size;
-
-        for (let i = 0; i < area; i++) {
-            const px = i % size;
-            const py = Math.floor(i / size);
-
-            if (
-                x + px < 0 ||
-                y + py < 0 ||
-                x + px >= this.width ||
-                y + py >= this.height
-            ) {
-                return;
-            }
-
-            data.set(colArray, i * 4);
+        for (let i = 0; i < area; ++i) {
+            data[i] = rgba;
         }
-
-        this._gfx.putImageData(imageData, x, y);
-    }
-
-    drawPixelsLine(pixels, color) {
-        if (pixels[0].length > 0) {
-            const minX = Math.min.apply(null, pixels[0]);
-            const maxX = Math.max.apply(null, pixels[0]);
-            const minY = Math.min.apply(null, pixels[1]);
-            const maxY = Math.max.apply(null, pixels[1]);
-            const width = maxX - minX + 1;
-            const height = maxY - minY + 1;
-
-            const colorArray = color.array;
-
-            const imageData = this._gfx.getImageData(minX, minY, width, height);
-            const data = imageData.data;
-
-            const length = pixels[0].length;
-
-            for (let i = 0; i < length; i++) {
-                data.set(
-                    colorArray,
-                    ((pixels[1][i] - minY) * width + (pixels[0][i] - minX)) * 4
-                );
-            }
-
-            this._gfx.putImageData(imageData, minX, minY);
-        }
-    }
-
-    drawPixels(pixels, color, minX, minY, maxX, maxY) {
-        if (pixels[0].length > 0) {
-            const width = maxX - minX + 1;
-            const height = maxY - minY + 1;
-
-            const colorArray = color.array;
-
-            const imageData = this._gfx.getImageData(minX, minY, width, height);
-            const data = imageData.data;
-
-            const length = pixels[0].length;
-
-            for (let i = 0; i < length; i++) {
-                data.set(
-                    colorArray,
-                    ((pixels[1][i] - minY) * width + (pixels[0][i] - minX)) * 4
-                );
-            }
-
-            this._gfx.putImageData(imageData, minX, minY);
-        }
+        pd.put();
     }
 
     /**
@@ -393,91 +262,7 @@ export default class Pixmap {
      * @param {*} size
      * @param {*} proportional
      */
-    drawRect(x1, y1, x2, y2, color, size, proportional = false) {
-        const width = Math.abs(x1 - x2);
-        const height = Math.abs(y1 - y2);
-
-        if (size <= 0) {
-            size = 1;
-        }
-
-        if (x1 > x2) {
-            [x1, x2] = [x2, x1];
-
-            if (proportional === true) {
-                x1 = x2 - width;
-            }
-        } else if (proportional === true) {
-            x2 = x1 + width;
-        }
-
-        if (y1 > y2) {
-            [y1, y2] = [y2, y1];
-
-            if (proportional === true) {
-                y1 = y2 - height;
-            }
-        } else if (proportional === true) {
-            y2 = y1 + height;
-        }
-
-        const pixels = this._pixelBuffer;
-        pixels[0].length = 0;
-        pixels[1].length = 0;
-
-        if (size === 1) {
-            for (let x = 0; x <= width; x++) {
-                pixels[0].push(x1 + x);
-                pixels[1].push(y1);
-
-                pixels[0].push(x1 + x);
-                pixels[1].push(y2);
-            }
-
-            for (let y = 0; y < height; y++) {
-                pixels[0].push(x1);
-                pixels[1].push(y1 + y);
-
-                pixels[0].push(x2);
-                pixels[1].push(y1 + y);
-            }
-        } else {
-            const w = width + size - 1;
-
-            for (let x = 0; x <= w; x++) {
-                for (let s = 0; s < size; s++) {
-                    pixels[0].push(x1 + x);
-                    pixels[1].push(y1 + s);
-                }
-
-                for (let s = 0; s < size; s++) {
-                    pixels[0].push(x1 + x);
-                    pixels[1].push(y2 + s);
-                }
-            }
-
-            for (let y = 0; y <= height; y++) {
-                for (let s = 0; s < size; s++) {
-                    pixels[1].push(y1 + y);
-                    pixels[0].push(x1 + s);
-                }
-
-                for (let s = 0; s < size; s++) {
-                    pixels[1].push(y1 + y);
-                    pixels[0].push(x2 + s);
-                }
-            }
-        }
-
-        this.drawPixels(
-            pixels,
-            color,
-            x1 - size,
-            y1 - size,
-            x2 + size,
-            y2 + size
-        );
-    }
+    drawRect(x1, y1, x2, y2, color, size, proportional = false) {}
 
     /**
      * Draws a line using Bresenham algorithm
@@ -488,48 +273,109 @@ export default class Pixmap {
      * @param {*} size
      * @param {*} color
      */
-    drawLine(x1, y1, x2, y2, size, color) {
-        let lastX = x1;
-        let lastY = y1;
 
-        let dx = Math.abs(x2 - x1);
-        let dy = -Math.abs(y2 - y1);
-
-        let sx = x1 < x2 ? size : -size;
-        let sy = y1 < y2 ? size : -size;
-
-        let error = dx + dy;
-
-        let e2;
-
-        const pixels = [[], []];
-
+    drawLine2(x1, y1, x2, y2, size, color) {
+        console.log("DRAW LINE");
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
+        let eps = 0;
+        const sx = dx > 0 ? size : -size;
+        const sy = dy > 0 ? size : -size;
         const pw = this.width;
         const ph = this.height;
+        const pd = this._pixelData;
+        const areaW = Math.min(pw, Math.max(Math.abs(x2 - x1), 1));
+        const areaH = Math.min(ph, Math.max(Math.abs(y2 - y1), 1));
+        const lockX = Math.max(Math.min(x1, x2), 0);
+        const lockY = Math.max(Math.min(y1, y2), 0);
+        const data = pd.get(lockX, lockY, areaW, areaH);
+        const rgba = color.rgba32;
+        x1 = 0;
+        y1 = 0;
+        x2 = dx;
+        y2 = dy;
+        if (adx > ady) {
+            for (let x = x1, y = y1; sx < 0 ? x >= x2 : x <= x2; x += sx) {
+                for (let j = y; j < y + size; ++j) {
+                    for (let i = x; i < x + size; ++i) {
+                        const idx = i + j * areaW;
+                        data[idx] = rgba;
+                    }
+                }
+                eps += ady;
+                if (eps << 1 >= adx) {
+                    y += sy;
+                    eps -= adx;
+                }
+            }
+        } else {
+            for (let x = x1, y = y1; sy < 0 ? y >= y2 : y <= y2; y += sy) {
+                for (let j = y; j < y + size; ++j) {
+                    for (let i = x; i < x + size; ++i) {
+                        const idx = i + j * areaW;
+                        data[idx] = rgba;
+                    }
+                }
+                eps += adx;
+                if (eps << 1 >= ady) {
+                    x += sx;
+                    eps -= ady;
+                }
+            }
+        }
 
+        pd.put();
+    }
+
+    drawLine(x1, y1, x2, y2, size, color) {
+        console.log("DRAW LINE");
+        let lastX = x1;
+        let lastY = y1;
+        let dx = Math.abs(x2 - x1);
+        let dy = -Math.abs(y2 - y1);
+        let sx = x1 < x2 ? size : -size;
+        let sy = y1 < y2 ? size : -size;
+        let error = dx + dy;
+        let e2;
+        const pw = this.width;
+        const ph = this.height;
+        const pd = this._pixelData;
+        const areaW = Math.min(pw, Math.abs(x2 - x1) + size);
+        const areaH = Math.min(ph, Math.abs(y2 - y1) + size);
+        const lockX = Math.max(Math.min(x1, x2), 0);
+        const lockY = Math.max(Math.min(y1, y2), 0);
+        const data = pd.get(lockX, lockY, areaW, areaH);
+        const rgba = color.rgba32;
+        x1 = 0;
+        y1 = 0;
+        x2 = dx;
+        y2 = -dy;
+        for (let y = 0; y < size; ++y) {
+            for (let x = 0; x < size; ++x) {
+                const idx = x + y * areaW;
+                data[idx] = rgba;
+            }
+        }
         while (true) {
             if (x1 !== lastX || y1 !== lastY) {
                 if (x1 < 0 || y1 < 0 || x1 + size > pw || y1 + size > ph) {
                     break;
                 }
-
-                for (let y = y1; y < y1 + size; y++) {
-                    for (let x = x1; x < x1 + size; x++) {
-                        pixels[0].push(x);
-                        pixels[1].push(y);
+                for (let y = y1; y < y1 + size; ++y) {
+                    for (let x = x1; x < x1 + size; ++x) {
+                        const idx = x + y * areaW;
+                        data[idx] = rgba;
                     }
                 }
             }
-
             lastX = x1;
             lastY = y1;
-
             if (x1 === x2 && y1 === y2) {
                 break;
             }
-
             e2 = error * 2;
-
             if (e2 >= dy) {
                 error += dy;
                 x1 += sx;
@@ -540,7 +386,9 @@ export default class Pixmap {
             }
         }
 
-        this.drawPixelsLine(pixels, color);
+        //data[x2 + y2 * areaW] = rgba;
+
+        pd.put();
     }
 
     /**
@@ -583,33 +431,38 @@ export default class Pixmap {
             y2 = y1 + height;
         }
 
-        const pixels = this._pixelBuffer;
-        pixels[0].length = 0;
-        pixels[1].length = 0;
+        const data = this._pixelData.get(x1, y1, width, height);
+        const rgba = color.rgba32;
 
-        for (let x = 0; x <= width; x++) {
+        for (let x = 0; x <= width; ++x) {
             const xPerc = x / (width / 2) - 1;
             const yPerc = Math.sin(Math.acos(xPerc));
             const y = (yPerc * height) / 2;
 
-            pixels[0].push(Math.round(x1 + x));
-            pixels[1].push(Math.round(y1 + height / 2 + y));
-            pixels[0].push(Math.round(x1 + x));
-            pixels[1].push(Math.round(y1 + height / 2 - y));
+            const idx1 =
+                Math.round(x1 + x) + Math.round(y1 + height / 2 + y) * width;
+            const idx2 =
+                Math.round(x1 + x) + Math.round(y1 + height / 2 - y) * width;
+
+            data[idx1] = rgba;
+            data[idx2] = rgba;
         }
 
-        for (let y = 0; y <= height; y++) {
+        for (let y = 0; y <= height; ++y) {
             const yPerc = y / (height / 2) - 1;
             const xPerc = Math.cos(Math.asin(yPerc));
             const x = (xPerc * width) / 2;
 
-            pixels[0].push(Math.round(x1 + width / 2 + x));
-            pixels[1].push(Math.round(y1 + y));
-            pixels[0].push(Math.round(x1 + width / 2 - x));
-            pixels[1].push(Math.round(y1 + y));
+            const idx1 =
+                Math.round(x1 + width / 2 + x) + Math.round(y1 + y) * width;
+            const idx2 =
+                Math.round(x1 + width / 2 - x) + Math.round(y1 + y) * width;
+
+            data[idx1] = rgba;
+            data[idx2] = rgba;
         }
 
-        this.drawPixels(pixels, color, x1, y1, x2, y2);
+        this._pixelData.put();
     }
 
     /**
@@ -622,7 +475,7 @@ export default class Pixmap {
      * @param {*} proportional
      */
     fillRect(x1, y1, x2, y2, color, proportional = false) {
-        //console.time("FillRect");
+        console.time("FillRect");
         const width = Math.abs(x1 - x2);
         const height = Math.abs(y1 - y2);
 
@@ -650,15 +503,19 @@ export default class Pixmap {
         pixels[0].length = 0;
         pixels[1].length = 0;
 
-        for (let x = x1; x < x2; x++) {
-            for (let y = y1; y < y2; y++) {
-                pixels[0].push(x);
-                pixels[1].push(y);
+        const rw = x2 - x1;
+        const rh = y2 - y1;
+        const rgba = color.rgba32;
+
+        const data = this._pixelData.get(x1, y1, rw, rh);
+
+        for (let x = 0; x < rw; ++x) {
+            for (let y = 0; y < rh; ++y) {
+                data[x + y * rw] = rgba;
             }
         }
-
-        this.drawPixels(pixels, color, x1, y1, x2, y2);
-        //console.timeEnd("FillRect");
+        this._pixelData.push();
+        console.timeEnd("FillRect");
     }
 
     /**
@@ -673,52 +530,31 @@ export default class Pixmap {
         let pw = this.width;
         let ph = this.height;
 
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
+        const data = this._pixelData.get(0, 0, pw, ph);
 
         let index = pw * y + x;
 
-        let srcColor = [
-            data[index * 4],
-            data[index * 4 + 1],
-            data[index * 4 + 2],
-            data[index * 4 + 3]
-        ];
-
-        const dstColor = color.array;
+        const srcColor = data[index];
+        const dstColor = color.rgba32;
 
         let queue = [index];
 
-        if (
-            srcColor[0] === dstColor[0] &&
-            srcColor[1] === dstColor[1] &&
-            srcColor[2] === dstColor[2] &&
-            srcColor[3] === dstColor[3]
-        ) {
+        if (srcColor === dstColor) {
             console.info("Source and Destination Colors are Equal");
+            return;
         } else {
             while (queue.length > 0) {
-                let ci = queue.pop();
-
-                index = ci * 4;
-
-                if (
-                    srcColor[3] === data[index + 3] &&
-                    srcColor[2] === data[index + 2] &&
-                    srcColor[1] === data[index + 1] &&
-                    srcColor[0] === data[index]
-                ) {
-                    data.set(dstColor, index);
-
-                    if (x > 0) queue.push(ci - 1);
-                    if (x < pw - 1) queue.push(ci + 1);
-                    if (y > 0) queue.push(ci - pw);
-                    if (y < ph - 1) queue.push(ci + pw);
+                index = queue.pop();
+                if (srcColor === data[index]) {
+                    data[index] = dstColor;
+                    if (x > 0) queue.push(index - 1);
+                    if (x < pw - 1) queue.push(index + 1);
+                    if (y > 0) queue.push(index - pw);
+                    if (y < ph - 1) queue.push(index + pw);
                 }
             }
             console.timeEnd("Fill");
-
-            this._gfx.putImageData(imageData, 0, 0);
+            this._pixelData.put();
         }
     }
 
@@ -734,42 +570,24 @@ export default class Pixmap {
         const pw = this.width;
         const ph = this.height;
 
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
+        const data = this._pixelData.get(0, 0, pw, ph);
 
-        let index = (pw * y + x) * 4;
+        let index = x + y * pw;
 
-        let srcColor = [
-            data[index],
-            data[index + 1],
-            data[index + 2],
-            data[index + 3]
-        ];
-
+        const srcColor = data[index];
         const dstColor = color.array;
 
-        if (
-            srcColor[0] === dstColor[0] &&
-            srcColor[1] === dstColor[1] &&
-            srcColor[2] === dstColor[2] &&
-            srcColor[3] === dstColor[3]
-        ) {
+        if (srcColor === dstColor) {
             console.info("Source and Destination Colors are Equal");
+            return;
         } else {
-            for (let p = 0; p < pw * ph; p++) {
-                index = p * 4;
-
-                if (
-                    srcColor[3] === data[index + 3] &&
-                    srcColor[2] === data[index + 2] &&
-                    srcColor[1] === data[index + 1] &&
-                    srcColor[0] === data[index]
-                ) {
-                    data.set(dstColor, index);
+            for (let p = 0; p < pw * ph; ++p) {
+                if (data[p] === srcColor) {
+                    data[p] = dstColor;
                 }
             }
 
-            this._gfx.putImageData(imageData, 0, 0);
+            this._pixelData.put();
         }
 
         console.timeEnd("Fill all");
@@ -784,25 +602,17 @@ export default class Pixmap {
         const pw = this.width;
         const ph = this.height;
 
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
-
+        const data = this._pixelData.get(0, 0, pw, ph);
         const area = pw * ph;
+        const c2rgba = c2.rgba32();
 
-        const c2Array = c2.array;
-
-        for (let i = 0; i < area * 4; i += 4) {
-            if (
-                data[i + 3] === c1.alpha &&
-                data[i] === c1.red &&
-                data[i + 1] === c1.green &&
-                data[i + 2] === c1.blue
-            ) {
-                data.set(c2Array, i);
+        for (let i = 0; i < area; ++i) {
+            if (data[i] === c1) {
+                data[i] = c2rgba;
             }
         }
 
-        this._gfx.putImageData(imageData, 0, 0);
+        this._pixelData.put();
     }
 
     /**
@@ -837,28 +647,24 @@ export default class Pixmap {
 
         const pw = this.width;
         const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
-
+        const data = this._pixelData.get(0, 0, pw, ph);
         const area = pw * ph;
-        let index = 0;
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+        for (let p = 0; p < area; ++p) {
+            const dataPixel = data[p];
+            if (((dataPixel >> 24) & 0x000000ff) === 0) {
+                continue;
+            }
 
-            if (data[index + 3 === 0]) continue;
+            const ir = (255 - dataPixel) & 0x000000ff;
+            const ig = 255 - ((dataPixel >> 8) & 0x000000ff);
+            const ib = 255 - ((dataPixel >> 16) & 0x000000ff);
+            const ia = (dataPixel >> 24) & 0x000000ff;
 
-            data.set(
-                [
-                    255 - data[index],
-                    255 - data[index + 1],
-                    255 - data[index + 2]
-                ],
-                index
-            );
+            data[p] = ir | (ig << 8) | (ib << 16) | (ia << 24);
         }
 
-        this._gfx.putImageData(imageData, 0, 0);
+        this._pixelData.put();
 
         console.timeEnd("Filter Invert Done");
     }
@@ -871,26 +677,25 @@ export default class Pixmap {
 
         const pw = this.width;
         const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
-
+        const data = this._pixelData.get(0, 0, pw, ph);
         const area = pw * ph;
-        let index = 0;
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+        for (let p = 0; p < area; ++p) {
+            const dataPixel = data[p];
+            if (((dataPixel >> 24) & 0x000000ff) === 0) {
+                continue;
+            }
 
-            if (data[index + 3 === 0]) continue;
+            const newCol = 
+                ((((dataPixel) & 0x000000ff)*0.8086)) |
+                ((((dataPixel >> 8) & 0x000000ff)*0.6094)|0 << 8) |
+                ((((dataPixel >> 16) & 0x000000ff)*0.082)|0 << 16) |
+                ((((dataPixel >> 24) & 0x000000ff)) << 24);
 
-            const v =
-                data[index] * 0.8086 +
-                data[index + 1] * 0.6094 +
-                data[index + 2] * 0.082;
-
-            data.set([v, v, v], index);
+            data[p] = newCol;
         }
 
-        this._gfx.putImageData(imageData, 0, 0);
+        this._pixelData.put();
 
         console.timeEnd("Filter BlackWhite Done");
     }
@@ -906,23 +711,25 @@ export default class Pixmap {
 
         const pw = this.width;
         const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
-
+        const data = this._pixelData.get(0, 0, pw, ph);
         const area = pw * ph;
-        let index = 0;
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+        for (let p = 0; p < area; ++p) {
+            const dataPixel = data[p];
+            if (((dataPixel >> 24) & 0x000000ff) === 0) {
+                continue;
+            }
 
-            if (data[index + 3 === 0]) continue;
+            const newCol = 
+                ((((dataPixel) & 0x000000ff)+brightness)) |
+                ((((dataPixel >> 8) & 0x000000ff)+brightness) << 8) |
+                ((((dataPixel >> 16) & 0x000000ff)+brightness) << 16) |
+                ((((dataPixel >> 24) & 0x000000ff)) << 24);
 
-            data[index] += brightness;
-            data[index + 1] += brightness;
-            data[index + 2] += brightness;
+            data[p] = newCol;
         }
 
-        this._gfx.putImageData(imageData, 0, 0);
+        this._pixelData.put();
 
         console.timeEnd("Filter Brightness Done");
     }
@@ -940,23 +747,25 @@ export default class Pixmap {
 
         const pw = this.width;
         const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
-
+        const data = this._pixelData.get(0, 0, pw, ph);
         const area = pw * ph;
-        let index = 0;
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+        for (let p = 0; p < area; ++p) {
+            const dataPixel = data[p];
+            if (((dataPixel >> 24) & 0x000000ff) === 0) {
+                continue;
+            }
 
-            if (data[index + 3 === 0]) continue;
+            const newCol = 
+                (((((dataPixel) & 0x000000ff)-128)*factor) + 128) |
+                (((((dataPixel >> 8) & 0x000000ff)-128)*factor + 128) << 8) |
+                (((((dataPixel >> 16) & 0x000000ff)-128)*factor + 128) << 16) |
+                ((((dataPixel >> 24) & 0x000000ff)) << 24);
 
-            data[index] = factor * (data[index] - 128) + 128;
-            data[index + 1] = factor * (data[index + 1] - 128) + 128;
-            data[index + 2] = factor * (data[index + 2] - 128) + 128;
+            data[p] = newCol;
         }
 
-        this._gfx.putImageData(imageData, 0, 0);
+        this._pixelData.put();
 
         console.timeEnd("Filter Contrast Done");
     }
@@ -978,23 +787,26 @@ export default class Pixmap {
 
         const pw = this.width;
         const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
-
+        const data = this._pixelData.get(0, 0, pw, ph);
         const area = pw * ph;
-        let index = 0;
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+        for (let p = 0; p < area; ++p) {
 
-            if (data[index + 3 === 0]) continue;
+            const dataPixel = data[p];
+            if (((dataPixel >> 24) & 0x000000ff) === 0) {
+                continue;
+            }
 
-            data[index] = cache[data[index]];
-            data[index + 1] = cache[data[index + 1]];
-            data[index + 2] = cache[data[index + 2]];
+            const newCol = 
+                cache[(((dataPixel) & 0x000000ff))] |
+                cache[(((dataPixel >> 8) & 0x000000ff) << 8)] |
+                cache[(((dataPixel >> 16) & 0x000000ff) << 16)] |
+                (((dataPixel >> 24) & 0x000000ff) << 24);
+
+            data[p] = newCol;
         }
 
-        this._gfx.putImageData(imageData, 0, 0);
+        this._pixelData.put();
 
         console.timeEnd("Filter Gamma Correction Done");
     }

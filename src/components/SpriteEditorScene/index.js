@@ -40,7 +40,7 @@ export default class SpriteEditorScene extends Scene {
     _initElements() {
         this._div = document.createElement("div");
         this._div.setAttribute("id", this.id);
-        this._spriteEditor = new SpriteEditor(640, 480);
+        this._spriteEditor = new SpriteEditor(1024, 768);
         this._toolBox = new ToolBox();
         this._toolBox.populate(
             Object.values(ToolNames),

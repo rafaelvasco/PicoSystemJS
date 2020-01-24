@@ -105,7 +105,7 @@ export default class PenTool extends Tool {
 
             return true;
         } else if (dx >= size || dy >= size) {
-            pixmap.drawLine(
+            pixmap.drawLine2(
                 this._lastPoint.x,
                 this._lastPoint.y,
                 this._curPoint.x,
@@ -117,7 +117,7 @@ export default class PenTool extends Tool {
             if (editor.mirrorX || editor.mirrorY)  {
                 const mirrorXDelta = editor.mirrorX ? (x - editor.pixmap.width / 2) * 2 : 0;
                 const mirrorYDelta = editor.mirrorY ? (y - editor.pixmap.height / 2) * 2 : 0;
-                pixmap.drawLine(
+                pixmap.drawLine2(
                     this._lastPoint.x - mirrorXDelta,
                     this._lastPoint.y - mirrorYDelta,
                     this._curPoint.x - mirrorXDelta,

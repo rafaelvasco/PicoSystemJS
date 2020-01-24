@@ -2,71 +2,81 @@ export default class ColorRgba {
 
     constructor(r = 0, g = 0, b = 0, a = 255){
 
-        this._components = [r, g, b, a];
+        this._r = r;
+        this._g = g;
+        this._b = b;
+        this._a = a;
     }
 
     get hexStr() {
-        const r = this._components[0].toString(16);
-        const g = this._components[1].toString(16);
-        const b = this._components[2].toString(16);
+        const r = this._r.toString(16);
+        const g = this._g.toString(16);
+        const b = this._b.toString(16);
 
-        if (this._components[0] < 16) { r = '0' + r; }
-        if (this._components[1] < 16) { g = '0' + g; }
-        if (this._components[2] < 16) { b = '0' + b; }
+        if (this._r < 16) { r = '0' + r; }
+        if (this._g < 16) { g = '0' + g; }
+        if (this._b < 16) { b = '0' + b; }
 
         return `#${r}${g}${b}`.toUpperCase();
     }
 
+    get rgba32() {
+        return  this._r |
+                (this._g << 8) |
+                (this._b << 16) |
+                (this._a << 24);
+    }
+
     get array() {
-        return this._components;
+        return [this._r, this._g, this._b, this._a];
     }
 
     get rgbaStr() {
-        return `rgba(${this._components[0]}, ${this._components[1]}, ${this._components[2]}, ${(Math.round(this._components[3] / 255 * 10))/10})`;
+        return `rgba(${this._r}, ${this._g}, ${this._b}, ${(Math.round(this._a / 255 * 10))/10})`;
     }
 
     get red() {
-        return this._components[0];
+        return this._r;
     }
 
     set red(val) {
         if (this._isValidRGBValue(val) === false) {
             return;
         }
-        this._components[0] = val | 0;
+        this._r = val | 0;
     }
 
     get green() {
-        return this._components[1];
+        return this._g;
     }
 
     set green(val) {
         if (this._isValidRGBValue(val) === false) {
             return;
         }
-        this._components[1] = val | 0;
+        this._g = val | 0;
     }
 
     get blue() {
-        return this._components[2];
+        return this._b;
     }
 
     set blue(val) {
         if (this._isValidRGBValue(val) === false) {
             return;
         }
-        this._components[2] = val | 0;
+        this._b = val | 0;
     }
 
     get alpha() {
-        return this._components[3];
+        return this._a;
     }
 
     set alpha(val) {
         if (this._isValidRGBValue(val) === false) {
             return;
         }
-        this._components[3] = val | 0;
+        this._a = val | 0;
     }
 
     copy(obj) {
@@ -76,10 +86,10 @@ export default class ColorRgba {
             return;
         }
 
-        this._components[0] = obj._components[0];
-        this._components[1] = obj._components[1];
-        this._components[2] = obj._components[2];
-        this._components[3] = obj._components[3];
+        this._r = obj._r;
+        this._g = obj._g;
+        this._b = obj._b;
+        this._a = obj._a;
     }
 
     setRGBA(r, g, b, a = 255) {
@@ -94,10 +104,10 @@ export default class ColorRgba {
             return;
         }
 
-        this._components[0] = r;
-        this._components[1] = g;
-        this._components[2] = b;
-        this._components[3] = a;
+        this._r = r;
+        this._g = g;
+        this._b = b;
+        this._a = a;
         return this;
 
     }
@@ -118,10 +128,10 @@ export default class ColorRgba {
             hex = hex.replace(/([0-9A-F])([0-9A-F])([0-9A-F])/i, '$1$1$2$2$3$3');
         }
 
-       this._components[0] = parseInt(hex.substr(0, 2), 16);
-       this._components[1] = parseInt(hex.substr(2, 2), 16);
-       this._components[2] = parseInt(hex.substr(4, 2), 16);
-       this._components[3] = 255;
+       this._r = parseInt(hex.substr(0, 2), 16);
+       this._g = parseInt(hex.substr(2, 2), 16);
+       this._b = parseInt(hex.substr(4, 2), 16);
+       this._a = 255;
 
         return this;
     }
