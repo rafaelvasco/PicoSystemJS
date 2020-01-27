@@ -8,6 +8,7 @@ export default class PenTool extends Tool {
         this._curPoint = new Point();
         this._lastPoint = new Point();
         this._painting = false;
+        this._cleanLine = false;
     }
 
     get name() {
@@ -42,9 +43,13 @@ export default class PenTool extends Tool {
 
         pixmap.drawPoint(x, y, size, color);
 
-        if (editor.mirrorX || editor.mirrorY)  {
-            const mirrorXDelta = editor.mirrorX ? (x - editor.pixmap.width / 2) * 2 : 0;
-            const mirrorYDelta = editor.mirrorY ? (y - editor.pixmap.height / 2) * 2 : 0;
+        if (editor.mirrorX || editor.mirrorY) {
+            const mirrorXDelta = editor.mirrorX
+                ? (x - editor.pixmap.width / 2) * 2
+                : 0;
+            const mirrorYDelta = editor.mirrorY
+                ? (y - editor.pixmap.height / 2) * 2
+                : 0;
             pixmap.drawPoint(x - mirrorXDelta, y - mirrorYDelta, size, color);
         }
 
@@ -65,6 +70,10 @@ export default class PenTool extends Tool {
         const pos = event.pos;
         const pixmap = editor.pixmap;
         const size = editor.pixelsize;
+        const mirrorX = editor.mirrorX;
+        const mirrorY = editor.mirrorY;
+        const halfPw = pixmap.width / 2;
+        const halfPh = pixmap.height / 2;
 
         let x = 0;
         let y = 0;
@@ -97,31 +106,45 @@ export default class PenTool extends Tool {
         ) {
             pixmap.drawPoint(x, y, size, color);
 
-            if (editor.mirrorX || editor.mirrorY)  {
-                const mirrorXDelta = editor.mirrorX ? (x - editor.pixmap.width / 2) * 2 : 0;
-                const mirrorYDelta = editor.mirrorY ? (y - editor.pixmap.height / 2) * 2 : 0;
-                pixmap.drawPoint(x - mirrorXDelta, y - mirrorYDelta, size, color);
+            if (mirrorX || mirrorY) {
+                const mirrorXDelta = mirrorX
+                    ? (x - pixmap.width / 2) * 2
+                    : 0;
+                const mirrorYDelta = mirrorY
+                    ? (y - editor.pixmap.height / 2) * 2
+                    : 0;
+
+                pixmap.drawPoint(
+                    x - mirrorXDelta,
+                    y - mirrorYDelta,
+                    size,
+                    color
+                );
             }
 
             return true;
         } else if (dx >= size || dy >= size) {
-            pixmap.drawLine2(
+            pixmap.drawLine(
                 this._lastPoint.x,
                 this._lastPoint.y,
-                this._curPoint.x,
-                this._curPoint.y,
+                x,
+                y,
                 size,
                 color
             );
 
-            if (editor.mirrorX || editor.mirrorY)  {
-                const mirrorXDelta = editor.mirrorX ? (x - editor.pixmap.width / 2) * 2 : 0;
-                const mirrorYDelta = editor.mirrorY ? (y - editor.pixmap.height / 2) * 2 : 0;
-                pixmap.drawLine2(
-                    this._lastPoint.x - mirrorXDelta,
-                    this._lastPoint.y - mirrorYDelta,
-                    this._curPoint.x - mirrorXDelta,
-                    this._curPoint.y - mirrorYDelta,
+            if (mirrorX || mirrorY) {
+
+                const mirrorX1Delta = mirrorX ? (this._lastPoint.x - halfPw) * 2 : 0;
+                const mirrorY1Delta = mirrorY ? (this._lastPoint.y - halfPh) * 2 : 0;
+                const mirrorX2Delta = mirrorX ? (x - halfPw) * 2 : 0;
+                const mirrorY2Delta = mirrorY ? (y - halfPh) * 2 : 0;
+
+                pixmap.drawLine(
+                    this._lastPoint.x - mirrorX1Delta,
+                    this._lastPoint.y - mirrorY1Delta,
+                    x - mirrorX2Delta,
+                    y - mirrorY2Delta,
                     size,
                     color
                 );

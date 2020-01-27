@@ -7,15 +7,21 @@
     padding-right: 20px;
 }
 
+#sprite-editor-scene > #palette {
+    /* row start, col start, row end, col end */
+    grid-area: 1 / 1 / 2 / 2 ;
+    align-self: center;
+}
+
+#sprite-editor-scene > #tool-box {
+    grid-area: 2 / 1 / 4 / 2;
+    align-self: flex-start;
+}
+
 #sprite-editor-scene > #sprite-editor {
     grid-area: 1 / 2 / 4 / 3;
     align-self: center;
     justify-self: center;
-}
-
-#sprite-editor-scene > #tool-box {
-    grid-area: 1 / 1 / 4 / 2;;
-    align-self: center;
 }
 
 #sprite-editor-scene > #mod-box {

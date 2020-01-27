@@ -38,23 +38,27 @@ export default class Rect {
         this.height = 0;
     }
 
-    containsPont(point) {
-        if (point.x < this.left) {
+    containsPoint(x, y) {
+        if (x < this.left) {
             return false;
         }
 
-        if (point.x > this.right) {
+        if (x > this.right) {
             return false;
         }
 
-        if (point.y < this.top) {
+        if (y < this.top) {
             return false;
         }
 
-        if (point.y > this.bottom) {
+        if (y > this.bottom) {
             return false;
         }
 
         return true;
+    }
+
+    containsPont(point) {
+        return this.containsPoint(point.x, point.y);
     }
 }

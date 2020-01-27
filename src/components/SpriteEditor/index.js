@@ -23,7 +23,7 @@ class MouseEvent {
 export default class SpriteEditor extends CanvasElement {
     constructor(width, height) {
         super("sprite-editor", width, height);
-        this._pixelSize = 1;
+        this._pixelSize = 4;
         this._pixmap = Pixmap.create(width, height);
         this._overlay = Pixmap.create(width, height);
         this._bgRect = new Rect(0, 0, width, height);
@@ -51,7 +51,6 @@ export default class SpriteEditor extends CanvasElement {
         this._initializeTools();
         this._recalculateViewCenter();
         this._updateTransformMatrices();
-        //this._pixmap.drawLine2(100, 100, 250, 100, 1, ColorRgba.Black);
         this.paint();
     }
 
@@ -65,20 +64,28 @@ export default class SpriteEditor extends CanvasElement {
         return this._pixelSize;
     }
 
-    get mirrorX() { return this._mirrorX; }
+    get mirrorX() {
+        return this._mirrorX;
+    }
 
-    set mirrorX(val) { this._mirrorX = val; }
+    set mirrorX(val) {
+        this._mirrorX = val;
+    }
 
-    get mirrorY() { return this._mirrorY; }
+    get mirrorY() {
+        return this._mirrorY;
+    }
 
-    set mirrorY(val) { this._mirrorY = val; }
+    set mirrorY(val) {
+        this._mirrorY = val;
+    }
 
-    set pixelsize(val) { 
+    set pixelsize(val) {
         this._pixelSize = val;
         if (this._pixelSize < 1) {
             this._pixelSize = 1;
         }
-     }
+    }
 
     get pixmap() {
         return this._pixmap;
@@ -100,11 +107,19 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     set primaryColor(val) {
-        this._primaryColor.copy(val);
+        if (typeof val === "object") {
+            this._primaryColor.copy(val);
+        } else if (typeof val === "string") {
+            this._primaryColor.setHEX(val);
+        }
     }
 
     set secondaryColor(val) {
-        this._secondaryColor.copy(val);
+        if (typeof val === "object") {
+            this._secondaryColor.copy(val);
+        } else if (typeof val === "string") {
+            this._secondaryColor.setHEX(val);
+        }
     }
 
     _initializeTools() {
@@ -134,15 +149,13 @@ export default class SpriteEditor extends CanvasElement {
 
     processKeyEvent(key, down) {
         if (down) {
-            if(this.currentTool.onKeyDown(this, key)) {
+            if (this.currentTool.onKeyDown(this, key)) {
                 this.paint();
             }
-        }
-        else {
-            if(this.currentTool.onKeyUp(this, key)) {
+        } else {
+            if (this.currentTool.onKeyUp(this, key)) {
                 this.paint();
             }
-            
         }
     }
 
@@ -167,6 +180,11 @@ export default class SpriteEditor extends CanvasElement {
 
     clear() {
         this._pixmap.erase();
+        this.paint();
+    }
+
+    clearLines() {
+        this._pixmap.filterCleanLines();
         this.paint();
     }
 
@@ -254,9 +272,7 @@ export default class SpriteEditor extends CanvasElement {
     onMouseDown(e) {
         e.preventDefault();
         // Tooling //////////////////////////////////////////////////////
-        if (
-           (e.button === 0 || e.button === 2)
-        ) {
+        if (e.button === 0 || e.button === 2) {
             this._mouseEvent.button = e.button;
 
             if (
@@ -364,8 +380,8 @@ export default class SpriteEditor extends CanvasElement {
 
         this._bgRect.x = 0;
         this._bgRect.y = 0;
-        this._bgRect.width = this.canvas.width;
-        this._bgRect.height = this.canvas.height;
+        this._bgRect.width = this.pixmap.width;
+        this._bgRect.height = this.pixmap.height;
 
         this._combinedTransform.transformRect(this._bgRect);
 
@@ -426,7 +442,7 @@ export default class SpriteEditor extends CanvasElement {
 
             //g.setTransform(1, 0, 0, 1, 0, 0);
 
-            g.globalCompositeOperation = 'exclusion';
+            g.globalCompositeOperation = "exclusion";
             g.drawImage(this._overlay.canvas, 0, 0);
             g.globalCompositeOperation = "source-over";
         }

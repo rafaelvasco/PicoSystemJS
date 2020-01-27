@@ -8,6 +8,12 @@ export default class ColorRgba {
         this._a = a;
     }
 
+    static fromRgba32(rgba32) {
+        const col = new ColorRgba();
+        col.setIntRGBA(rgba32);
+        return col;
+    }
+
     get hexStr() {
         const r = this._r.toString(16);
         const g = this._g.toString(16);
@@ -112,9 +118,18 @@ export default class ColorRgba {
 
     }
 
-    setHEX(hex) {
+    setIntRGBA(rgba32) {
+        this.setRGBA(
+            rgba32 & 0x000000ff,
+            (rgba32 >> 8) & 0x000000ff,
+            (rgba32 >> 16) & 0x000000ff,
+            255,
+        );
+    }
 
-        const valid = /(^#{0,1}[0-9A-F]{6}$)|(^#{0,1}[0-9A-F]{3}$)/i.test(hex);
+    setHEX(hex) {
+        hex = hex.toUpperCase();
+        const valid = /^#?([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/.test(hex);
         if (valid === false) {
             console.error(`Invalid hex color: ${hex}`);
             return;

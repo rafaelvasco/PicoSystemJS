@@ -1,7 +1,7 @@
 import Element from "./Element";
 
 export default class CanvasElement extends Element {
-    constructor(id, width, height) {
+    constructor(id, width, height, transparent) {
         super(id);
         this._width = width;
         this._height = height;
@@ -52,7 +52,7 @@ export default class CanvasElement extends Element {
         );
 
         this._gfx = this._canvas.getContext("2d", {
-            alpha: false
+            alpha: transparent === true
         });
         this._gfx.imageSmoothingEnabled = false;
     }

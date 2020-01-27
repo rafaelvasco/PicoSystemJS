@@ -12,6 +12,7 @@ export default class RectTool extends Tool {
         this._rect = new Rect();
         this._pivotPos = new Point();
         this._curMousePos = new Point();
+        this._lastMousePos = new Point();
         this._overlayColor = new ColorRgba(255, 0, 255, 120);
         this._curColor = null;
         this._filled = false;
@@ -29,6 +30,8 @@ export default class RectTool extends Tool {
         this._mouseDown = true;
         this._curMousePos.x = pos.x;
         this._curMousePos.y = pos.y;
+        this._lastMousePos.x = pos.x;
+        this._lastMousePos.y = pos.y;
         this._pivotPos.x = pos.x;
         this._pivotPos.y = pos.y;
         this._curColor =
@@ -47,8 +50,7 @@ export default class RectTool extends Tool {
             editor.overlay.erase();
             this._paintPixmap(editor);
             this._rect.zero();
-        } 
-        
+        }
     }
 
     onMouseMove(editor, event) {
@@ -60,9 +62,19 @@ export default class RectTool extends Tool {
         snapPoint(event.pos, pixelSize);
         this._curMousePos.x = event.pos.x;
         this._curMousePos.y = event.pos.y;
-        this._updateRect(pixelSize);
-        this._paintOverlay(editor);
-        return true;
+
+        if (
+            this._curMousePos.x !== this._lastMousePos.x ||
+            this._curMousePos.y !== this._lastMousePos.y
+        ) {
+            this._updateRect(pixelSize);
+            this._paintOverlay(editor);
+            this._lastMousePos.x = this._curMousePos.x;
+            this._lastMousePos.y = this._curMousePos.y;
+            return true;
+        }
+
+        return false;
     }
 
     onKeyDown(editor, key) {
@@ -106,11 +118,19 @@ export default class RectTool extends Tool {
                 pixelSize
             );
 
-            if (mirrorX || mirrorY)  {
-                const mirrorLeftDelta = mirrorX ? (this._rect.left - pixmap.width / 2) * 2 : 0;
-                const mirrorRightDelta = mirrorX ? (this._rect.right - pixmap.width / 2) * 2 : 0;
-                const mirrorTopDelta = mirrorY ? (this._rect.top - pixmap.height / 2) * 2 : 0;
-                const mirrorBottomDelta = mirrorY ? (this._rect.bottom - pixmap.height / 2) * 2 : 0;
+            if (mirrorX || mirrorY) {
+                const mirrorLeftDelta = mirrorX
+                    ? (this._rect.left - pixmap.width / 2) * 2
+                    : 0;
+                const mirrorRightDelta = mirrorX
+                    ? (this._rect.right - pixmap.width / 2) * 2
+                    : 0;
+                const mirrorTopDelta = mirrorY
+                    ? (this._rect.top - pixmap.height / 2) * 2
+                    : 0;
+                const mirrorBottomDelta = mirrorY
+                    ? (this._rect.bottom - pixmap.height / 2) * 2
+                    : 0;
                 pixmap.drawRect(
                     this._rect.left - mirrorLeftDelta,
                     this._rect.top - mirrorTopDelta,
@@ -120,7 +140,6 @@ export default class RectTool extends Tool {
                     pixelSize
                 );
             }
-
         } else {
             pixmap.fillRect(
                 this._rect.left,
@@ -131,11 +150,19 @@ export default class RectTool extends Tool {
                 pixelSize
             );
 
-            if (mirrorX || mirrorY)  {
-                const mirrorLeftDelta = mirrorX ? (this._rect.left - pixmap.width / 2) * 2 : 0;
-                const mirrorRightDelta = mirrorX ? (this._rect.right - pixmap.width / 2) * 2 : 0;
-                const mirrorTopDelta = mirrorY ? (this._rect.top - pixmap.height / 2) * 2 : 0;
-                const mirrorBottomDelta = mirrorY ? (this._rect.bottom - pixmap.height / 2) * 2 : 0;
+            if (mirrorX || mirrorY) {
+                const mirrorLeftDelta = mirrorX
+                    ? (this._rect.left - pixmap.width / 2) * 2
+                    : 0;
+                const mirrorRightDelta = mirrorX
+                    ? (this._rect.right - pixmap.width / 2) * 2
+                    : 0;
+                const mirrorTopDelta = mirrorY
+                    ? (this._rect.top - pixmap.height / 2) * 2
+                    : 0;
+                const mirrorBottomDelta = mirrorY
+                    ? (this._rect.bottom - pixmap.height / 2) * 2
+                    : 0;
                 pixmap.fillRect(
                     this._rect.left - mirrorLeftDelta,
                     this._rect.top - mirrorTopDelta,
@@ -165,11 +192,19 @@ export default class RectTool extends Tool {
                 pixelSize
             );
 
-            if (mirrorX || mirrorY)  {
-                const mirrorLeftDelta = mirrorX ? (this._rect.left - overlay.width / 2) * 2 : 0;
-                const mirrorRightDelta = mirrorX ? (this._rect.right - overlay.width / 2) * 2 : 0;
-                const mirrorTopDelta = mirrorY ? (this._rect.top - overlay.height / 2) * 2 : 0;
-                const mirrorBottomDelta = mirrorY ? (this._rect.bottom - overlay.height / 2) * 2 : 0;
+            if (mirrorX || mirrorY) {
+                const mirrorLeftDelta = mirrorX
+                    ? (this._rect.left - overlay.width / 2) * 2
+                    : 0;
+                const mirrorRightDelta = mirrorX
+                    ? (this._rect.right - overlay.width / 2) * 2
+                    : 0;
+                const mirrorTopDelta = mirrorY
+                    ? (this._rect.top - overlay.height / 2) * 2
+                    : 0;
+                const mirrorBottomDelta = mirrorY
+                    ? (this._rect.bottom - overlay.height / 2) * 2
+                    : 0;
                 overlay.drawRect(
                     this._rect.left - mirrorLeftDelta,
                     this._rect.top - mirrorTopDelta,
@@ -179,10 +214,8 @@ export default class RectTool extends Tool {
                     pixelSize
                 );
             }
-    
-
         } else {
-            overlay.fillRect(
+            overlay.fillRectNative(
                 this._rect.left,
                 this._rect.top,
                 this._rect.right,
@@ -191,12 +224,20 @@ export default class RectTool extends Tool {
                 pixelSize
             );
 
-            if (mirrorX || mirrorY)  {
-                const mirrorLeftDelta = mirrorX ? (this._rect.left - overlay.width / 2) * 2 : 0;
-                const mirrorRightDelta = mirrorX ? (this._rect.right - overlay.width / 2) * 2 : 0;
-                const mirrorTopDelta = mirrorY ? (this._rect.top - overlay.height / 2) * 2 : 0;
-                const mirrorBottomDelta = mirrorY ? (this._rect.bottom - overlay.height / 2) * 2 : 0;
-                overlay.fillRect(
+            if (mirrorX || mirrorY) {
+                const mirrorLeftDelta = mirrorX
+                    ? (this._rect.left - overlay.width / 2) * 2
+                    : 0;
+                const mirrorRightDelta = mirrorX
+                    ? (this._rect.right - overlay.width / 2) * 2
+                    : 0;
+                const mirrorTopDelta = mirrorY
+                    ? (this._rect.top - overlay.height / 2) * 2
+                    : 0;
+                const mirrorBottomDelta = mirrorY
+                    ? (this._rect.bottom - overlay.height / 2) * 2
+                    : 0;
+                overlay.fillRectNative(
                     this._rect.left - mirrorLeftDelta,
                     this._rect.top - mirrorTopDelta,
                     this._rect.right - mirrorRightDelta,
@@ -214,7 +255,7 @@ export default class RectTool extends Tool {
         this._rect.width = Math.abs(this._curMousePos.x - this._pivotPos.x);
         this._rect.height = Math.abs(this._curMousePos.y - this._pivotPos.y);
 
-        if(this._filled === false) {
+        if (this._filled === false) {
             this._rect.width -= pixelSize;
             this._rect.height -= pixelSize;
         }

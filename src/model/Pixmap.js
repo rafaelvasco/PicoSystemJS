@@ -262,7 +262,78 @@ export default class Pixmap {
      * @param {*} size
      * @param {*} proportional
      */
-    drawRect(x1, y1, x2, y2, color, size, proportional = false) {}
+    drawRect(x1, y1, x2, y2, color, size, proportional = false) {
+        const width = Math.abs(x2 - x1);
+        const height = Math.abs(y2 - y1);
+        const pw = this.width;
+        const ph = this.height;
+
+        if (size <= 0) {
+            size = 1;
+        }
+
+        if (x1 > x2) {
+            [x1, x2] = [x2, x1];
+
+            if (proportional === true) {
+                x1 = x2 - width;
+            }
+        } else if (proportional === true) {
+            x2 = x1 + width;
+        }
+
+        if (y1 > y2) {
+            [y1, y2] = [y2, y1];
+
+            if (proportional === true) {
+                y1 = y2 - height;
+            }
+        } else if (proportional === true) {
+            y2 = y1 + height;
+        }
+
+        const data = this._pixelData.get(0, 0, pw, ph);
+        const rgba = color.rgba32;
+
+        if (size === 1) {
+            for (let x = x1; x <= x1 + width; ++x) {
+                const idx1 = x + y1 * pw;
+                const idx2 = x + y2 * pw;
+                data[idx1] = rgba;
+                data[idx2] = rgba;
+            }
+            for (let y = y1; y < y1 + height; ++y) {
+                const idx1 = x1 + y * pw;
+                const idx2 = x2 + y * pw;
+                data[idx1] = rgba;
+                data[idx2] = rgba;
+            }
+        } else {
+            const w = width + size - 1;
+            for (let x = x1; x <= x1 + w; ++x) {
+                for (let y = y1; y < y1 + size; ++y) {
+                    const idx = x + y * pw;
+                    data[idx] = rgba;
+                }
+                for (let y = y2; y < y2 + size; ++y) {
+                    const idx = x + y * pw;
+                    data[idx] = rgba;
+                }
+            }
+            for (let y = y1; y <= y1 + height; ++y) {
+                for (let x = x1; x < x1 + size; ++x) {
+                    const idx = x + y * pw;
+                    data[idx] = rgba;
+                }
+                for (let x = x2; x < x2 + size; ++x) {
+                    const idx = x + y * pw;
+                    data[idx] = rgba;
+                }
+            }
+        }
+
+        this._pixelData.put();
+    }
 
     /**
      * Draws a line using Bresenham algorithm
@@ -274,8 +345,7 @@ export default class Pixmap {
      * @param {*} color
      */
 
-    drawLine2(x1, y1, x2, y2, size, color) {
-        console.log("DRAW LINE");
+    drawLine(x1, y1, x2, y2, size, color) {
         const dx = x2 - x1;
         const dy = y2 - y1;
         const adx = Math.abs(dx);
@@ -286,21 +356,13 @@ export default class Pixmap {
         const pw = this.width;
         const ph = this.height;
         const pd = this._pixelData;
-        const areaW = Math.min(pw, Math.max(Math.abs(x2 - x1), 1));
-        const areaH = Math.min(ph, Math.max(Math.abs(y2 - y1), 1));
-        const lockX = Math.max(Math.min(x1, x2), 0);
-        const lockY = Math.max(Math.min(y1, y2), 0);
-        const data = pd.get(lockX, lockY, areaW, areaH);
+        const data = pd.get(0, 0, pw, ph);
         const rgba = color.rgba32;
-        x1 = 0;
-        y1 = 0;
-        x2 = dx;
-        y2 = dy;
         if (adx > ady) {
             for (let x = x1, y = y1; sx < 0 ? x >= x2 : x <= x2; x += sx) {
                 for (let j = y; j < y + size; ++j) {
                     for (let i = x; i < x + size; ++i) {
-                        const idx = i + j * areaW;
+                        const idx = i + j * pw;
                         data[idx] = rgba;
                     }
                 }
@@ -314,7 +376,7 @@ export default class Pixmap {
             for (let x = x1, y = y1; sy < 0 ? y >= y2 : y <= y2; y += sy) {
                 for (let j = y; j < y + size; ++j) {
                     for (let i = x; i < x + size; ++i) {
-                        const idx = i + j * areaW;
+                        const idx = i + j * pw;
                         data[idx] = rgba;
                     }
                 }
@@ -325,68 +387,6 @@ export default class Pixmap {
                 }
             }
         }
-
-        pd.put();
-    }
-
-    drawLine(x1, y1, x2, y2, size, color) {
-        console.log("DRAW LINE");
-        let lastX = x1;
-        let lastY = y1;
-        let dx = Math.abs(x2 - x1);
-        let dy = -Math.abs(y2 - y1);
-        let sx = x1 < x2 ? size : -size;
-        let sy = y1 < y2 ? size : -size;
-        let error = dx + dy;
-        let e2;
-        const pw = this.width;
-        const ph = this.height;
-        const pd = this._pixelData;
-        const areaW = Math.min(pw, Math.abs(x2 - x1) + size);
-        const areaH = Math.min(ph, Math.abs(y2 - y1) + size);
-        const lockX = Math.max(Math.min(x1, x2), 0);
-        const lockY = Math.max(Math.min(y1, y2), 0);
-        const data = pd.get(lockX, lockY, areaW, areaH);
-        const rgba = color.rgba32;
-        x1 = 0;
-        y1 = 0;
-        x2 = dx;
-        y2 = -dy;
-        for (let y = 0; y < size; ++y) {
-            for (let x = 0; x < size; ++x) {
-                const idx = x + y * areaW;
-                data[idx] = rgba;
-            }
-        }
-        while (true) {
-            if (x1 !== lastX || y1 !== lastY) {
-                if (x1 < 0 || y1 < 0 || x1 + size > pw || y1 + size > ph) {
-                    break;
-                }
-                for (let y = y1; y < y1 + size; ++y) {
-                    for (let x = x1; x < x1 + size; ++x) {
-                        const idx = x + y * areaW;
-                        data[idx] = rgba;
-                    }
-                }
-            }
-            lastX = x1;
-            lastY = y1;
-            if (x1 === x2 && y1 === y2) {
-                break;
-            }
-            e2 = error * 2;
-            if (e2 >= dy) {
-                error += dy;
-                x1 += sx;
-            }
-            if (e2 <= dx) {
-                error += dx;
-                y1 += sy;
-            }
-        }
-
-        //data[x2 + y2 * areaW] = rgba;
 
         pd.put();
     }
@@ -466,6 +466,46 @@ export default class Pixmap {
     }
 
     /**
+     * Fills a rectangle area with the given ColorRgba using native canvas fillRect
+     * function instead of pixel by pixel;
+     * @param {*} x1
+     * @param {*} y1
+     * @param {*} x2
+     * @param {*} y2
+     * @param {*} color
+     * @param {*} proportional
+     */
+    fillRectNative(x1, y1, x2, y2, color, proportional = false) {
+        // console.time("FillRect Native");
+        const width = Math.abs(x1 - x2);
+        const height = Math.abs(y1 - y2);
+
+        if (x1 > x2) {
+            [x1, x2] = [x2, x1];
+
+            if (proportional === true) {
+                x1 = x2 - width;
+            }
+        } else if (proportional === true) {
+            x2 = x1 + width;
+        }
+
+        if (y1 > y2) {
+            [y1, y2] = [y2, y1];
+
+            if (proportional === true) {
+                y1 = y2 - height;
+            }
+        } else if (proportional === true) {
+            y2 = y1 + height;
+        }
+
+        this._gfx.fillStyle = color;
+        this._gfx.fillRect(x1, y1, width, height);
+        // console.timeEnd("FillRect Native");
+    }
+
+    /**
      * Fills a rectangle area with a given ColorRgba
      * @param {*} x1
      * @param {*} y1
@@ -499,10 +539,6 @@ export default class Pixmap {
             y2 = y1 + height;
         }
 
-        const pixels = this._pixelBuffer;
-        pixels[0].length = 0;
-        pixels[1].length = 0;
-
         const rw = x2 - x1;
         const rh = y2 - y1;
         const rgba = color.rgba32;
@@ -514,8 +550,59 @@ export default class Pixmap {
                 data[x + y * rw] = rgba;
             }
         }
-        this._pixelData.push();
+        this._pixelData.put();
         console.timeEnd("FillRect");
+    }
+
+    fill2(x, y, color) {
+
+        console.time("Fill2");
+        const pw = this.width;
+        const ph = this.height;
+        const data = this._pixelData.get(0, 0, pw, ph);
+        const dataLength = data.length;
+        let index = x + y * pw;
+        let indexEast = index;
+        let indexWest = index;
+        let maxEast;
+        let maxWest;
+        const srcColor = data[index];
+        const dstColor = color.rgba32;
+
+        
+        if (srcColor === dstColor) {
+            return;
+        }
+
+        let queue = [index];
+
+        while(queue.length) {
+            index = queue.pop();
+            if (srcColor === data[index]) {
+                data[index] = dstColor;
+                indexEast = index;
+                indexWest = index;
+                maxWest = ((index/pw)|0)*pw;
+                maxEast = maxWest + pw;
+                while(((--indexWest) > maxWest) && srcColor === data[indexWest]) {
+                    data[indexWest] = dstColor;                    
+                }
+                while(((++indexEast) < maxEast) && srcColor === data[indexEast]) {
+                    data[indexEast] = dstColor;                    
+                }
+                for(var j=indexWest; j < indexEast; ++j) {
+                    if ((j-pw >= 0) && srcColor === data[j-pw]) {
+                        queue.push(j-pw); // Queue y-1
+                    }
+                    if((j+pw < dataLength) && srcColor === data[j+pw]) {
+                        queue.push(j+pw); // Queue y+1
+                    }
+                }
+            }
+        }
+
+        this._pixelData.put();
+        console.timeEnd("Fill2");
     }
 
     /**
@@ -526,21 +613,16 @@ export default class Pixmap {
      */
     fill(x, y, color) {
         console.time("Fill");
-
-        let pw = this.width;
-        let ph = this.height;
-
+        const pw = this.width;
+        const ph = this.height;
         const data = this._pixelData.get(0, 0, pw, ph);
-
-        let index = pw * y + x;
-
+        let index = x + y * pw;
         const srcColor = data[index];
         const dstColor = color.rgba32;
-
+        
         let queue = [index];
 
         if (srcColor === dstColor) {
-            console.info("Source and Destination Colors are Equal");
             return;
         } else {
             while (queue.length > 0) {
@@ -553,9 +635,9 @@ export default class Pixmap {
                     if (y < ph - 1) queue.push(index + pw);
                 }
             }
-            console.timeEnd("Fill");
             this._pixelData.put();
         }
+        console.timeEnd("Fill");
     }
 
     /**
@@ -670,6 +752,72 @@ export default class Pixmap {
     }
 
     /**
+     * Cleanup lines of pixels so that there's no extra pixels
+     * in the lines;
+     */
+    filterCleanLines() {
+        console.time("Filter Clean Lines Done");
+
+        const pw = this.width;
+        const ph = this.height;
+        const data = this._pixelData.get(0, 0, pw, ph);
+        const area = pw * ph;
+        let pixels = 0;
+        for (let p = 0; p < area; ++p) {
+            if (((data[p] >> 24) & 0x000000ff) === 0) {
+                continue;
+            }
+            const alphaLeft = (data[Math.max(0, p - 1)] >> 24) & 0x000000ff;
+            const alphaRight =
+                (data[Math.min(area - 1, p + 1)] >> 24) & 0x000000ff;
+            const alphaTop = (data[Math.max(0, p - pw)] >> 24) & 0x000000ff;
+            const alphaBottom =
+                (data[Math.min(area - 1, p + pw)] >> 24) & 0x000000ff;
+            // const alphaTopLeft =
+            //     (data[Math.max(0, p - pw - 1)] >> 24) & 0x000000ff;
+            // const alphaTopRight =
+            //     (data[Math.max(0, p - pw + 1)] >> 24) & 0x000000ff;
+            // const alphaBottomLeft =
+            //     (data[Math.min(area - 1, p + pw - 1)] >> 24) & 0x000000ff;
+            // const alphaBottomRight =
+            //     (data[Math.min(area - 1, p + pw + 1)] >> 24) & 0x000000ff;
+            // console.log(p, alphaLeft, alphaRight, alphaTop, alphaBottom);
+
+            if (
+                (
+                    alphaLeft !== 0 &&
+                    alphaTop !== 0
+                   
+                ) ||
+                (
+                    alphaRight !== 0 && 
+                    alphaTop !== 0
+                    
+                ) ||
+                (
+                    alphaLeft !== 0 &&
+                    alphaBottom !== 0
+                    
+                    
+                ) ||
+                (
+                    alphaRight !== 0 &&
+                    alphaBottom !== 0
+                   
+                )
+            ) {
+                data[p] = 0;
+                pixels += 1;
+            }
+        }
+
+        this._pixelData.put();
+
+        console.log("Non Alpha Pixels: ", pixels);
+        console.timeEnd("Filter Clean Lines Done");
+    }
+
+    /**
      * Change Pixmap to Black & White
      */
     filterBlackWhite() {
@@ -686,11 +834,12 @@ export default class Pixmap {
                 continue;
             }
 
-            const newCol = 
-                ((((dataPixel) & 0x000000ff)*0.8086)) |
-                ((((dataPixel >> 8) & 0x000000ff)*0.6094)|0 << 8) |
-                ((((dataPixel >> 16) & 0x000000ff)*0.082)|0 << 16) |
-                ((((dataPixel >> 24) & 0x000000ff)) << 24);
+            const newCol =
+                ((dataPixel & 0x000000ff) * 0.8086) |
+                0 |
+                (((((dataPixel >> 8) & 0x000000ff) * 0.6094) | 0) << 8) |
+                (((((dataPixel >> 16) & 0x000000ff) * 0.082) | 0) << 16) |
+                (((dataPixel >> 24) & 0x000000ff) << 24);
 
             data[p] = newCol;
         }
@@ -720,11 +869,11 @@ export default class Pixmap {
                 continue;
             }
 
-            const newCol = 
-                ((((dataPixel) & 0x000000ff)+brightness)) |
-                ((((dataPixel >> 8) & 0x000000ff)+brightness) << 8) |
-                ((((dataPixel >> 16) & 0x000000ff)+brightness) << 16) |
-                ((((dataPixel >> 24) & 0x000000ff)) << 24);
+            const newCol =
+                ((dataPixel & 0x000000ff) + brightness) |
+                ((((dataPixel >> 8) & 0x000000ff) + brightness) << 8) |
+                ((((dataPixel >> 16) & 0x000000ff) + brightness) << 16) |
+                (((dataPixel >> 24) & 0x000000ff) << 24);
 
             data[p] = newCol;
         }
@@ -756,11 +905,13 @@ export default class Pixmap {
                 continue;
             }
 
-            const newCol = 
-                (((((dataPixel) & 0x000000ff)-128)*factor) + 128) |
-                (((((dataPixel >> 8) & 0x000000ff)-128)*factor + 128) << 8) |
-                (((((dataPixel >> 16) & 0x000000ff)-128)*factor + 128) << 16) |
-                ((((dataPixel >> 24) & 0x000000ff)) << 24);
+            const newCol =
+                (((dataPixel & 0x000000ff) - 128) * factor + 128) |
+                (((((dataPixel >> 8) & 0x000000ff) - 128) * factor + 128) <<
+                    8) |
+                (((((dataPixel >> 16) & 0x000000ff) - 128) * factor + 128) <<
+                    16) |
+                (((dataPixel >> 24) & 0x000000ff) << 24);
 
             data[p] = newCol;
         }
@@ -791,16 +942,15 @@ export default class Pixmap {
         const area = pw * ph;
 
         for (let p = 0; p < area; ++p) {
-
             const dataPixel = data[p];
             if (((dataPixel >> 24) & 0x000000ff) === 0) {
                 continue;
             }
 
-            const newCol = 
-                cache[(((dataPixel) & 0x000000ff))] |
-                cache[(((dataPixel >> 8) & 0x000000ff) << 8)] |
-                cache[(((dataPixel >> 16) & 0x000000ff) << 16)] |
+            const newCol =
+                cache[dataPixel & 0x000000ff] |
+                cache[((dataPixel >> 8) & 0x000000ff) << 8] |
+                cache[((dataPixel >> 16) & 0x000000ff) << 16] |
                 (((dataPixel >> 24) & 0x000000ff) << 24);
 
             data[p] = newCol;
@@ -815,329 +965,326 @@ export default class Pixmap {
      * Change the pixmap's colors hue value
      * @param {Number} hue (-360 ~ 360)
      */
-    filterHue(hue) {
-        console.time("Filter Hue Done");
+    // filterHue(hue) {
+    //     console.time("Filter Hue Done");
 
-        hue = clamp(Math.round(hue), -360, 360) / 360;
+    //     hue = clamp(Math.round(hue), -360, 360);
 
-        const cache = [];
+    //     const cache = [];
 
-        const pw = this.width;
-        const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
+    //     const pw = this.width;
+    //     const ph = this.height;
+    //     const data = this._pixelData.get(0, 0, pw, ph);
+    //     const area = pw * ph;
+    //     let index = 0;
 
-        const area = pw * ph;
-        let index = 0;
+    //     for (let p = 0; p < area; p++) {
+    //         const dataPixel = data[p];
+    //         if (((dataPixel >> 24) & 0x000000ff) === 0) {
+    //             continue;
+    //         }
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+    //         const ci =
+    //             (dataPixel & 0x000000ff) * 65536 +
+    //             ((dataPixel >> 8) & 0x000000ff) * 256 +
+    //             ((dataPixel >> 16) & 0x000000ff);
 
-            if (data[index + 3 === 0]) continue;
+    //         if (!cache[ci]) {
+    //             cache[ci] = ColorHsv.FromRgbaColor(ColorRgba.fromRgba32(dataPixel));
+    //             cache[ci].hue += hue;
+    //         }
 
-            const ci =
-                data[index] * 65536 + data[index + 1] * 256 + data[index + 2];
+    //         data[index] = Math.floor(cache[ci].red);
+    //         data[index + 1] = Math.floor(cache[ci].green);
+    //         data[index + 2] = Math.floor(cache[ci].blue);
+    //     }
 
-            if (!cache[ci]) {
-                cache[ci] = new ColorRgba(
-                    data[index],
-                    data[index + 1],
-                    data[index + 2]
-                );
-                cache[ci].hue = cache[ci].hue + hue;
-            }
+    //     this._gfx.putImageData(imageData, 0, 0);
 
-            data[index] = Math.floor(cache[ci].red);
-            data[index + 1] = Math.floor(cache[ci].green);
-            data[index + 2] = Math.floor(cache[ci].blue);
-        }
-
-        this._gfx.putImageData(imageData, 0, 0);
-
-        console.timeEnd("Filter Hue Done");
-    }
+    //     console.timeEnd("Filter Hue Done");
+    // }
 
     /**
      * Change the pixmap's colors saturation value
      * @param {Number} saturation (-100 ~ +300)
      */
-    filterSaturation(saturation) {
-        console.time("Filter Saturation Done");
+    // filterSaturation(saturation) {
+    //     console.time("Filter Saturation Done");
 
-        saturation = clamp(saturation, -100, 300) / 100 + 1; // 0: desaturate, 1: no change, > 1 saturate more
+    //     saturation = clamp(saturation, -100, 300) / 100 + 1; // 0: desaturate, 1: no change, > 1 saturate more
 
-        const cache = [];
+    //     const cache = [];
 
-        const pw = this.width;
-        const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
+    //     const pw = this.width;
+    //     const ph = this.height;
+    //     const imageData = this._gfx.getImageData(0, 0, pw, ph);
+    //     const data = imageData.data;
 
-        const area = pw * ph;
-        let index = 0;
+    //     const area = pw * ph;
+    //     let index = 0;
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+    //     for (let p = 0; p < area; p++) {
+    //         index = p * 4;
 
-            if (data[index + 3 === 0]) continue;
+    //         if (data[index + 3 === 0]) continue;
 
-            const ci =
-                data[index] * 65536 + data[index + 1] * 256 + data[index + 2];
+    //         const ci =
+    //             data[index] * 65536 + data[index + 1] * 256 + data[index + 2];
 
-            if (!cache[ci]) {
-                cache[ci] = [data[index], data[index + 1], data[index + 2]];
+    //         if (!cache[ci]) {
+    //             cache[ci] = [data[index], data[index + 1], data[index + 2]];
 
-                const desaturateColor =
-                    cache[ci][0] * 0.3086 +
-                    cache[ci][1] * 0.6094 +
-                    cache[ci][2] * 0.082;
+    //             const desaturateColor =
+    //                 cache[ci][0] * 0.3086 +
+    //                 cache[ci][1] * 0.6094 +
+    //                 cache[ci][2] * 0.082;
 
-                cache[ci][0] = Math.floor(
-                    clamp(
-                        desaturateColor * (1 - saturation) +
-                            cache[ci][0] * saturation,
-                        0,
-                        1
-                    ) * 255
-                );
-                cache[ci][1] = Math.floor(
-                    clamp(
-                        desaturateColor * (1 - saturation) +
-                            cache[ci][1] * saturation,
-                        0,
-                        1
-                    ) * 255
-                );
-                cache[ci][2] = Math.floor(
-                    clamp(
-                        desaturateColor * (1 - saturation) +
-                            cache[ci][2] * saturation,
-                        0,
-                        1
-                    ) * 255
-                );
-            }
+    //             cache[ci][0] = Math.floor(
+    //                 clamp(
+    //                     desaturateColor * (1 - saturation) +
+    //                         cache[ci][0] * saturation,
+    //                     0,
+    //                     1
+    //                 ) * 255
+    //             );
+    //             cache[ci][1] = Math.floor(
+    //                 clamp(
+    //                     desaturateColor * (1 - saturation) +
+    //                         cache[ci][1] * saturation,
+    //                     0,
+    //                     1
+    //                 ) * 255
+    //             );
+    //             cache[ci][2] = Math.floor(
+    //                 clamp(
+    //                     desaturateColor * (1 - saturation) +
+    //                         cache[ci][2] * saturation,
+    //                     0,
+    //                     1
+    //                 ) * 255
+    //             );
+    //         }
 
-            data[index] = Math.floor(cache[ci][0]);
-            data[index + 1] = Math.floor(cache[ci][1]);
-            data[index + 2] = Math.floor(cache[ci][2]);
-        }
+    //         data[index] = Math.floor(cache[ci][0]);
+    //         data[index + 1] = Math.floor(cache[ci][1]);
+    //         data[index + 2] = Math.floor(cache[ci][2]);
+    //     }
 
-        this._gfx.putImageData(imageData, 0, 0);
+    //     this._gfx.putImageData(imageData, 0, 0);
 
-        console.timeEnd("Filter Saturation Done");
-    }
+    //     console.timeEnd("Filter Saturation Done");
+    // }
 
     /**
      * Convert the Pixmap's colors to the nearest color defined in the pallete
      * @param {Array} pallete (ColorRgba Array)
      */
-    filterPallete(pallete) {
-        console.time("Filter Pallete Done");
+    // filterPallete(pallete) {
+    //     console.time("Filter Pallete Done");
 
-        const pw = this.width;
-        const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
+    //     const pw = this.width;
+    //     const ph = this.height;
+    //     const imageData = this._gfx.getImageData(0, 0, pw, ph);
+    //     const data = imageData.data;
 
-        const area = pw * ph;
-        let index = 0;
+    //     const area = pw * ph;
+    //     let index = 0;
 
-        let nearestColor = null;
-        let minimumDistance = 3 * 255 * 255 + 1;
-        let distance = 0;
+    //     let nearestColor = null;
+    //     let minimumDistance = 3 * 255 * 255 + 1;
+    //     let distance = 0;
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+    //     for (let p = 0; p < area; p++) {
+    //         index = p * 4;
 
-            if (data[index + 3 === 0]) continue;
+    //         if (data[index + 3 === 0]) continue;
 
-            nearestColor = null;
+    //         nearestColor = null;
 
-            for (let i = 0; i < pallete.length; i++) {
-                if (pallete[i].alpha === 0) continue;
+    //         for (let i = 0; i < pallete.length; i++) {
+    //             if (pallete[i].alpha === 0) continue;
 
-                const rDiff = data[index] - pallete[i].red;
-                const gDiff = data[index + 1] - pallete[i].green;
-                const bDiff = data[index + 2] - pallete[i].blue;
+    //             const rDiff = data[index] - pallete[i].red;
+    //             const gDiff = data[index + 1] - pallete[i].green;
+    //             const bDiff = data[index + 2] - pallete[i].blue;
 
-                distance = rDiff * rDiff + gDiff * gDiff + bDiff * bDiff;
+    //             distance = rDiff * rDiff + gDiff * gDiff + bDiff * bDiff;
 
-                if (distance < minimumDistance) {
-                    nearestColor = pallete[i];
-                    minimumDistance = distance;
-                }
-            }
+    //             if (distance < minimumDistance) {
+    //                 nearestColor = pallete[i];
+    //                 minimumDistance = distance;
+    //             }
+    //         }
 
-            if (nearestColor !== null) {
-                data[index] = nearestColor.red;
-                data[index + 1] = nearestColor.green;
-                data[index + 2] = nearestColor.blue;
-            }
-        }
+    //         if (nearestColor !== null) {
+    //             data[index] = nearestColor.red;
+    //             data[index + 1] = nearestColor.green;
+    //             data[index + 2] = nearestColor.blue;
+    //         }
+    //     }
 
-        this._gfx.putImageData(imageData, 0, 0);
+    //     this._gfx.putImageData(imageData, 0, 0);
 
-        console.timeEnd("Filter Pallete Done");
-    }
+    //     console.timeEnd("Filter Pallete Done");
+    // }
 
     /**
      * Convert the Pixmap's colors to the nearest color defined in the pallete
      * Uses Floyd-Steinberg error difusion dithering
      * @param {Array} pallete (ColorRgba Array)
      */
-    filterPalleteDither(pallete) {
-        console.time("Filter Pallete Done");
+    // filterPalleteDither(pallete) {
+    //     console.time("Filter Pallete Done");
 
-        const pw = this.width;
-        const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
+    //     const pw = this.width;
+    //     const ph = this.height;
+    //     const imageData = this._gfx.getImageData(0, 0, pw, ph);
+    //     const data = imageData.data;
 
-        const area = pw * ph;
-        let index = 0;
+    //     const area = pw * ph;
+    //     let index = 0;
 
-        let nearestColor = null;
-        let minimumDistance = 3 * 255 * 255 + 1;
-        let distance = 0;
+    //     let nearestColor = null;
+    //     let minimumDistance = 3 * 255 * 255 + 1;
+    //     let distance = 0;
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+    //     for (let p = 0; p < area; p++) {
+    //         index = p * 4;
 
-            if (data[index + 3 === 0]) continue;
+    //         if (data[index + 3 === 0]) continue;
 
-            nearestColor = null;
+    //         nearestColor = null;
 
-            for (let i = 0; i < pallete.length; i++) {
-                if (pallete[i].alpha === 0) continue;
+    //         for (let i = 0; i < pallete.length; i++) {
+    //             if (pallete[i].alpha === 0) continue;
 
-                const rDiff = data[index] - pallete[i].red;
-                const gDiff = data[index + 1] - pallete[i].green;
-                const bDiff = data[index + 2] - pallete[i].blue;
+    //             const rDiff = data[index] - pallete[i].red;
+    //             const gDiff = data[index + 1] - pallete[i].green;
+    //             const bDiff = data[index + 2] - pallete[i].blue;
 
-                distance = rDiff * rDiff + gDiff * gDiff + bDiff * bDiff;
+    //             distance = rDiff * rDiff + gDiff * gDiff + bDiff * bDiff;
 
-                if (distance < minimumDistance) {
-                    nearestColor = pallete[i];
-                    minimumDistance = distance;
-                }
-            }
+    //             if (distance < minimumDistance) {
+    //                 nearestColor = pallete[i];
+    //                 minimumDistance = distance;
+    //             }
+    //         }
 
-            if (nearestColor !== null) {
-                const x = p % pw;
-                const y = Math.floor(p / pw);
+    //         if (nearestColor !== null) {
+    //             const x = p % pw;
+    //             const y = Math.floor(p / pw);
 
-                if (x < pw - 1) {
-                    data[(p + 1) * 4] +=
-                        (7 / 16) * (data[index] - nearestColor.red);
-                }
+    //             if (x < pw - 1) {
+    //                 data[(p + 1) * 4] +=
+    //                     (7 / 16) * (data[index] - nearestColor.red);
+    //             }
 
-                if (y < ph - 1 && x !== 0) {
-                    data[(p + pw - 1) * 4] +=
-                        (3 / 16) * (data[index] - nearestColor.red);
-                }
+    //             if (y < ph - 1 && x !== 0) {
+    //                 data[(p + pw - 1) * 4] +=
+    //                     (3 / 16) * (data[index] - nearestColor.red);
+    //             }
 
-                if (y < ph - 1) {
-                    data[(p + pw) * 4] +=
-                        (5 / 16) * (data[index] - nearestColor.red);
-                }
+    //             if (y < ph - 1) {
+    //                 data[(p + pw) * 4] +=
+    //                     (5 / 16) * (data[index] - nearestColor.red);
+    //             }
 
-                if (y < ph - 1 && x !== pw - 1) {
-                    data[(p + pw + 1) * 4] +=
-                        (1 / 16) * (data[index] - nearestColor.red);
-                }
+    //             if (y < ph - 1 && x !== pw - 1) {
+    //                 data[(p + pw + 1) * 4] +=
+    //                     (1 / 16) * (data[index] - nearestColor.red);
+    //             }
 
-                data[index] = nearestColor.red;
-                data[index + 1] = nearestColor.green;
-                data[index + 2] = nearestColor.blue;
-            }
-        }
+    //             data[index] = nearestColor.red;
+    //             data[index + 1] = nearestColor.green;
+    //             data[index + 2] = nearestColor.blue;
+    //         }
+    //     }
 
-        this._gfx.putImageData(imageData, 0, 0);
+    //     this._gfx.putImageData(imageData, 0, 0);
 
-        console.timeEnd("Filter Pallete Done");
-    }
+    //     console.timeEnd("Filter Pallete Done");
+    // }
 
     /**
      * Adds and outline to all pixels in the Pixmap
      * @param {ColorRgba} color
      */
-    filterOutline(color) {
-        console.time("Filter Outline Done");
+    // filterOutline(color) {
+    //     console.time("Filter Outline Done");
 
-        const pw = this.width;
-        const ph = this.height;
-        const imageData = this._gfx.getImageData(0, 0, pw, ph);
-        const data = imageData.data;
+    //     const pw = this.width;
+    //     const ph = this.height;
+    //     const imageData = this._gfx.getImageData(0, 0, pw, ph);
+    //     const data = imageData.data;
 
-        const area = pw * ph;
-        let index = 0;
+    //     const area = pw * ph;
+    //     let index = 0;
 
-        const pixels = new Int8Array(area);
+    //     const pixels = new Int8Array(area);
 
-        for (let p = 0; p < area; p++) {
-            index = p * 4;
+    //     for (let p = 0; p < area; p++) {
+    //         index = p * 4;
 
-            if (data[index + 3 === 0]) continue;
+    //         if (data[index + 3 === 0]) continue;
 
-            // if(this.file.selection.isActive() && !this.file.selection.selection[p]) continue
+    //         // if(this.file.selection.isActive() && !this.file.selection.selection[p]) continue
 
-            const pX = p % pw;
-            const pY = Math.floor(p / pw);
+    //         const pX = p % pw;
+    //         const pY = Math.floor(p / pw);
 
-            for (let y = pY - 1; y <= pY + 1; y++) {
-                for (let x = pX - 1; x <= pX + 1; x++) {
-                    if (x === pX && y === pY) continue;
+    //         for (let y = pY - 1; y <= pY + 1; y++) {
+    //             for (let x = pX - 1; x <= pX + 1; x++) {
+    //                 if (x === pX && y === pY) continue;
 
-                    if (y < 0 || x < 0 || y >= ph || x >= pw) continue;
+    //                 if (y < 0 || x < 0 || y >= ph || x >= pw) continue;
 
-                    const ci = y + pw + x;
+    //                 const ci = y + pw + x;
 
-                    if (data[ci * 4 + 3] === 0) {
-                        pixels[index] = true;
-                    }
-                }
-            }
-        }
+    //                 if (data[ci * 4 + 3] === 0) {
+    //                     pixels[index] = true;
+    //                 }
+    //             }
+    //         }
+    //     }
 
-        for (let i = 0; i < pixels.length; i++) {
-            if (pixels[i]) {
-                index = i * 4;
+    //     for (let i = 0; i < pixels.length; i++) {
+    //         if (pixels[i]) {
+    //             index = i * 4;
 
-                data[index] = color.red;
-                data[index + 1] = color.green;
-                data[index + 2] = color.blue;
-                data[index + 3] = color.alpha;
-            }
-        }
+    //             data[index] = color.red;
+    //             data[index + 1] = color.green;
+    //             data[index + 2] = color.blue;
+    //             data[index + 3] = color.alpha;
+    //         }
+    //     }
 
-        this._gfx.putImageData(imageData, 0, 0);
+    //     this._gfx.putImageData(imageData, 0, 0);
 
-        console.timeEnd("Filter Hue Done");
-    }
+    //     console.timeEnd("Filter Hue Done");
+    // }
 
     /**
      * Get and array containing all the colors in the Pixmap
      */
-    getPallete() {
-        // TODO: Do not repeat colors
+    // getPallete() {
+    //     // TODO: Do not repeat colors
 
-        let pallete = [];
+    //     let pallete = [];
 
-        const imageData = this._gfx.getImageData(0, 0, this.width, this.height);
-        const data = imageData.data;
+    //     const imageData = this._gfx.getImageData(0, 0, this.width, this.height);
+    //     const data = imageData.data;
 
-        for (let i = 0; i < data.length; ++i) {
-            let r = data[0];
-            let g = data[1];
-            let b = data[2];
-            let a = data[3];
+    //     for (let i = 0; i < data.length; ++i) {
+    //         let r = data[0];
+    //         let g = data[1];
+    //         let b = data[2];
+    //         let a = data[3];
 
-            let color = new ColorRgba(r, g, b, a);
+    //         let color = new ColorRgba(r, g, b, a);
 
-            pallete.push(color);
-        }
+    //         pallete.push(color);
+    //     }
 
-        return pallete;
-    }
+    //     return pallete;
+    // }
 }

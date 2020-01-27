@@ -32,7 +32,7 @@ export default class FillTool extends Tool {
                 : editor.primaryColor;
 
         if (this._contiguous === true) {
-            pixmap.fill(pos.x, pos.y, color);
+            pixmap.fill2(pos.x, pos.y, color);
         } else {
             pixmap.fillAll(pos.x, pos.y, color);
         }

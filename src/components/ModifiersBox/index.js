@@ -5,12 +5,14 @@ import ToggleButton from "../ToggleButton";
 
 export default class ModifiersBox extends Element {
     static ClearId = 'clear';
-    static ButtonsSection = 'Buttons';
-    static ToggablesSection = 'Toggables';
+    static ClearPixelLinesId = 'clear-lines';
     static HMirrorId = 'h-mirror-toggle';
     static VMirrorId = 'v-mirror-toggle';
+    static ButtonsSection = 'Buttons';
+    static ToggablesSection = 'Toggables';
     static ActionEvent = "mod-box-action";
     static ClearAction = "clear";
+    static ClearLinesAction = 'clear-lines-action';
     static EnableHMirrorAction = "h-mirror-enable";
     static EnableVMirrorAction = "v-mirror-enable";
     static DisableHMirrorAction = "h-mirror-disable";
@@ -21,6 +23,10 @@ export default class ModifiersBox extends Element {
             'clear': {
                 Label: "CLEAR",
                 Action: ModifiersBox.ClearAction
+            },
+            'clear-lines': {
+                Label: "CLEAR LINES",
+                Action: ModifiersBox.ClearLinesAction
             }
         },
         Toggables: {

@@ -7,7 +7,11 @@ export default class ColorHsv {
         this._val = 0;
     }
 
-
+    static FromRgbaColor(color) {
+        const hsvColor = new ColorHsv();
+        hsvColor.setFromRGB(color.red, color.green, color.blue);
+        return hsvColor;
+    }
 
     get hsvStr() {
         return `hsv(${this._hue}, ${this._sat}, ${this._val})`;
@@ -34,7 +38,7 @@ export default class ColorHsv {
         return this._sat;
     }
 
-    set saturation() {
+    set saturation(val) {
         
         if (this._isValidHSVValue(val)) {
             console.error(`Invalid saturation value: ${val}`);
@@ -132,6 +136,8 @@ export default class ColorHsv {
 
         this._saturation = Math.ceil(saturation * 100) | 0;
         this._value = Math.ceil(cmax * 100) | 0;
+
+        return this;
 
     }
 
