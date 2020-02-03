@@ -12,7 +12,6 @@ export default class ModifiersBox extends Element {
     static ToggablesSection = 'Toggables';
     static ActionEvent = "mod-box-action";
     static ClearAction = "clear";
-    static ClearLinesAction = 'clear-lines-action';
     static EnableHMirrorAction = "h-mirror-enable";
     static EnableVMirrorAction = "v-mirror-enable";
     static DisableHMirrorAction = "h-mirror-disable";
@@ -23,10 +22,6 @@ export default class ModifiersBox extends Element {
             'clear': {
                 Label: "CLEAR",
                 Action: ModifiersBox.ClearAction
-            },
-            'clear-lines': {
-                Label: "CLEAR LINES",
-                Action: ModifiersBox.ClearLinesAction
             }
         },
         Toggables: {

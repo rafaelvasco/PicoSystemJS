@@ -13,7 +13,7 @@ export default class RectTool extends Tool {
         this._pivotPos = new Point();
         this._curMousePos = new Point();
         this._lastMousePos = new Point();
-        this._overlayColor = new ColorRgba(255, 0, 255, 120);
+        this._transparentOverlayColor = new ColorRgba(255, 0, 255);
         this._curColor = null;
         this._filled = false;
     }
@@ -78,7 +78,7 @@ export default class RectTool extends Tool {
     }
 
     onKeyDown(editor, key) {
-        if (key === "Control") {
+        if (key === "Shift") {
             this._filled = true;
             if (this._mouseDown === true) {
                 this._updateRect(editor.pixelsize);
@@ -90,7 +90,7 @@ export default class RectTool extends Tool {
     }
 
     onKeyUp(editor, key) {
-        if (key === "Control") {
+        if (key === "Shift") {
             this._filled = false;
             if (this._mouseDown === true) {
                 this._updateRect(editor.pixelsize);
@@ -180,6 +180,7 @@ export default class RectTool extends Tool {
         const pixelSize = editor.pixelsize;
         const mirrorX = editor.mirrorX;
         const mirrorY = editor.mirrorY;
+        const color = this._curColor.alpha > 0 ? this._curColor : this._transparentOverlayColor;
 
         overlay.erase();
         if (this._filled === false) {
@@ -188,7 +189,7 @@ export default class RectTool extends Tool {
                 this._rect.top,
                 this._rect.right,
                 this._rect.bottom,
-                this._overlayColor,
+                color,
                 pixelSize
             );
 
@@ -210,7 +211,7 @@ export default class RectTool extends Tool {
                     this._rect.top - mirrorTopDelta,
                     this._rect.right - mirrorRightDelta,
                     this._rect.bottom - mirrorBottomDelta,
-                    this._overlayColor,
+                    color,
                     pixelSize
                 );
             }
@@ -220,7 +221,7 @@ export default class RectTool extends Tool {
                 this._rect.top,
                 this._rect.right,
                 this._rect.bottom,
-                this._overlayColor,
+                color,
                 pixelSize
             );
 
@@ -242,7 +243,7 @@ export default class RectTool extends Tool {
                     this._rect.top - mirrorTopDelta,
                     this._rect.right - mirrorRightDelta,
                     this._rect.bottom - mirrorBottomDelta,
-                    this._overlayColor,
+                    color,
                     pixelSize
                 );
             }

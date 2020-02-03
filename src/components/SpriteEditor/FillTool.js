@@ -32,9 +32,29 @@ export default class FillTool extends Tool {
                 : editor.primaryColor;
 
         if (this._contiguous === true) {
-            pixmap.fill2(pos.x, pos.y, color);
+            pixmap.fill(pos.x, pos.y, color);
+
+            if (editor.mirrorX || editor.mirrorY) {
+                const mirrorXDelta = editor.mirrorX
+                    ? (pos.x - editor.pixmap.width / 2) * 2
+                    : 0;
+                const mirrorYDelta = editor.mirrorY
+                    ? (pos.y - editor.pixmap.height / 2) * 2
+                    : 0;
+                pixmap.fill(pos.x - mirrorXDelta, pos.y - mirrorYDelta, color);
+            }
         } else {
             pixmap.fillAll(pos.x, pos.y, color);
+
+            if (editor.mirrorX || editor.mirrorY) {
+                const mirrorXDelta = editor.mirrorX
+                    ? (pos.x - editor.pixmap.width / 2) * 2
+                    : 0;
+                const mirrorYDelta = editor.mirrorY
+                    ? (pos.y - editor.pixmap.height / 2) * 2
+                    : 0;
+                pixmap.fillAll(pos.x - mirrorXDelta, pos.y - mirrorYDelta, color);
+            }
         }
 
         return true;

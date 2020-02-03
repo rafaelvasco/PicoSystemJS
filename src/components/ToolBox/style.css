@@ -73,9 +73,9 @@
 }
 
 #tool-box > #line-btn.on {
-    background-color: rgb(185, 183, 83);
+    background-color: rgb(194, 169, 25);
 }
 
 #tool-box > #line-btn:active {
-    background-color: rgba(185, 183, 83, 0.5);
+    background-color: rgba(194, 169, 25, 0.5);
 }

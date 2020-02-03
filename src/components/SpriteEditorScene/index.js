@@ -17,11 +17,13 @@ export default class SpriteEditorScene extends Scene {
             "5": ToolNames.Line
         },
         Modifiers: {
-
             "c": ModifiersBox.ClearId,
             "h": ModifiersBox.HMirrorId,
             "v": ModifiersBox.VMirrorId,
             "l": ModifiersBox.ClearPixelLinesId
+        },
+        SpriteEditor: {
+            "r": SpriteEditor.Actions.ResetView
         }
     };
 
@@ -92,6 +94,11 @@ export default class SpriteEditorScene extends Scene {
                 this._modBox.triggerModifer(value);
             };
         });
+        Object.entries(SpriteEditorScene.ShortCutBindings.SpriteEditor).forEach(([key, value]) => {
+            this._shortcuts[key] = () => {
+                this._spriteEditor.processAction(value);
+            }
+        });
     }
 
     onToolBoxSelect(tool) {
@@ -111,9 +118,6 @@ export default class SpriteEditorScene extends Scene {
         switch (action) {
             case ModifiersBox.ClearAction:
                 this._spriteEditor.clear();
-                break;
-            case ModifiersBox.ClearLinesAction:
-                this._spriteEditor.clearLines();
                 break;
             case ModifiersBox.EnableHMirrorAction:
                 this._spriteEditor.mirrorX = true;

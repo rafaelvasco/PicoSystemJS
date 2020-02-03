@@ -101,12 +101,21 @@ export default class Pixmap {
     getColorAt(x, y) {
         const pixels = this._pixelData.get(x, y, 1, 1);
         const pixel = pixels[0];
-        return new ColorRgba(
-            pixel & 0x000000ff,
-            (pixel >> 8) & 0x000000ff,
-            (pixel >> 16) & 0x000000ff,
-            (pixel >> 24) & 0x000000ff
+        const color = new ColorRgba(
+            (pixel >>> 0) & 0xff,
+            (pixel >>> 8) & 0xff,
+            (pixel >>> 16) & 0xff,
+            (pixel >>> 24) & 0xff
         );
+        return color;
+    }
+
+    _getIntColorAt(pixeldata, index) {
+        const pixel = pixeldata[index];
+        return  ((pixel >>> 0) & 0xff) |
+                (((pixel >>> 8) & 0xff) << 8) |
+                (((pixel >>> 16) & 0xff) << 16) |
+                (((pixel >>> 24) & 0xff) << 24);
     }
 
     erase() {
@@ -554,9 +563,9 @@ export default class Pixmap {
         console.timeEnd("FillRect");
     }
 
-    fill2(x, y, color) {
+    fill(x, y, color) {
 
-        console.time("Fill2");
+        console.time("Fill");
         const pw = this.width;
         const ph = this.height;
         const data = this._pixelData.get(0, 0, pw, ph);
@@ -566,35 +575,36 @@ export default class Pixmap {
         let indexWest = index;
         let maxEast;
         let maxWest;
-        const srcColor = data[index];
+        const pickAt = this._getIntColorAt;
+        const srcColor = pickAt(data, index);
         const dstColor = color.rgba32;
 
-        
         if (srcColor === dstColor) {
             return;
         }
 
         let queue = [index];
+        
 
         while(queue.length) {
             index = queue.pop();
-            if (srcColor === data[index]) {
+            if (srcColor === pickAt(data, index)) {
                 data[index] = dstColor;
                 indexEast = index;
                 indexWest = index;
                 maxWest = ((index/pw)|0)*pw;
                 maxEast = maxWest + pw;
-                while(((--indexWest) > maxWest) && srcColor === data[indexWest]) {
+                while(((--indexWest) >= maxWest) && srcColor === pickAt(data, indexWest)) {
                     data[indexWest] = dstColor;                    
                 }
-                while(((++indexEast) < maxEast) && srcColor === data[indexEast]) {
+                while(((++indexEast) < maxEast) && srcColor === pickAt(data, indexEast)) {
                     data[indexEast] = dstColor;                    
                 }
-                for(var j=indexWest; j < indexEast; ++j) {
-                    if ((j-pw >= 0) && srcColor === data[j-pw]) {
+                for(var j=indexWest+1; j < indexEast; ++j) {
+                    if ((j-pw >= 0) && srcColor === pickAt(data, j-pw)) {
                         queue.push(j-pw); // Queue y-1
                     }
-                    if((j+pw < dataLength) && srcColor === data[j+pw]) {
+                    if((j+pw < dataLength) && srcColor === pickAt(data, j+pw)) {
                         queue.push(j+pw); // Queue y+1
                     }
                 }
@@ -602,41 +612,6 @@ export default class Pixmap {
         }
 
         this._pixelData.put();
-        console.timeEnd("Fill2");
-    }
-
-    /**
-     * Fills a contiguous area (4 way flood fill)
-     * @param {*} x
-     * @param {*} y
-     * @param {*} color
-     */
-    fill(x, y, color) {
-        console.time("Fill");
-        const pw = this.width;
-        const ph = this.height;
-        const data = this._pixelData.get(0, 0, pw, ph);
-        let index = x + y * pw;
-        const srcColor = data[index];
-        const dstColor = color.rgba32;
-        
-        let queue = [index];
-
-        if (srcColor === dstColor) {
-            return;
-        } else {
-            while (queue.length > 0) {
-                index = queue.pop();
-                if (srcColor === data[index]) {
-                    data[index] = dstColor;
-                    if (x > 0) queue.push(index - 1);
-                    if (x < pw - 1) queue.push(index + 1);
-                    if (y > 0) queue.push(index - pw);
-                    if (y < ph - 1) queue.push(index + pw);
-                }
-            }
-            this._pixelData.put();
-        }
         console.timeEnd("Fill");
     }
 
@@ -751,71 +726,6 @@ export default class Pixmap {
         console.timeEnd("Filter Invert Done");
     }
 
-    /**
-     * Cleanup lines of pixels so that there's no extra pixels
-     * in the lines;
-     */
-    filterCleanLines() {
-        console.time("Filter Clean Lines Done");
-
-        const pw = this.width;
-        const ph = this.height;
-        const data = this._pixelData.get(0, 0, pw, ph);
-        const area = pw * ph;
-        let pixels = 0;
-        for (let p = 0; p < area; ++p) {
-            if (((data[p] >> 24) & 0x000000ff) === 0) {
-                continue;
-            }
-            const alphaLeft = (data[Math.max(0, p - 1)] >> 24) & 0x000000ff;
-            const alphaRight =
-                (data[Math.min(area - 1, p + 1)] >> 24) & 0x000000ff;
-            const alphaTop = (data[Math.max(0, p - pw)] >> 24) & 0x000000ff;
-            const alphaBottom =
-                (data[Math.min(area - 1, p + pw)] >> 24) & 0x000000ff;
-            // const alphaTopLeft =
-            //     (data[Math.max(0, p - pw - 1)] >> 24) & 0x000000ff;
-            // const alphaTopRight =
-            //     (data[Math.max(0, p - pw + 1)] >> 24) & 0x000000ff;
-            // const alphaBottomLeft =
-            //     (data[Math.min(area - 1, p + pw - 1)] >> 24) & 0x000000ff;
-            // const alphaBottomRight =
-            //     (data[Math.min(area - 1, p + pw + 1)] >> 24) & 0x000000ff;
-            // console.log(p, alphaLeft, alphaRight, alphaTop, alphaBottom);
-
-            if (
-                (
-                    alphaLeft !== 0 &&
-                    alphaTop !== 0
-                   
-                ) ||
-                (
-                    alphaRight !== 0 && 
-                    alphaTop !== 0
-                    
-                ) ||
-                (
-                    alphaLeft !== 0 &&
-                    alphaBottom !== 0
-                    
-                    
-                ) ||
-                (
-                    alphaRight !== 0 &&
-                    alphaBottom !== 0
-                   
-                )
-            ) {
-                data[p] = 0;
-                pixels += 1;
-            }
-        }
-
-        this._pixelData.put();
-
-        console.log("Non Alpha Pixels: ", pixels);
-        console.timeEnd("Filter Clean Lines Done");
-    }
 
     /**
      * Change Pixmap to Black & White

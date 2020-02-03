@@ -21,15 +21,28 @@ class MouseEvent {
 }
 
 export default class SpriteEditor extends CanvasElement {
+
+    static PickerAttribs = {
+        OffsetX: 0,
+        OffsetY: -32,
+        Width: 32,
+        Height: 32
+    }
+
+    static Actions = {
+        ResetView: 0
+    }
+
     constructor(width, height) {
         super("sprite-editor", width, height);
         this._pixelSize = 4;
         this._pixmap = Pixmap.create(width, height);
         this._overlay = Pixmap.create(width, height);
+        this._untransformedOverlay = Pixmap.create(width, height);
         this._bgRect = new Rect(0, 0, width, height);
         this._savedTransforms = [];
         this._mousePos = new Point();
-        this._absoluteMousePos = new Point();
+        this._untransormedMousePos = new Point();
         this._viewTransform = new Transform();
         this._viewCenterTransform = new Transform();
         this._combinedTransform = new Transform();
@@ -43,9 +56,12 @@ export default class SpriteEditor extends CanvasElement {
         this._panning = false;
         this._lastPanPos = new Point();
         this._animationTimer = null;
-        this._bgBrush = null;
+        this._checkerBrush = null;
         this._mirrorX = false;
         this._mirrorY = false;
+        this._ctrlDown = false;
+        this._mouseDown = false;
+        this._sampledColor = null;
 
         this._initializeBackground();
         this._initializeTools();
@@ -57,6 +73,7 @@ export default class SpriteEditor extends CanvasElement {
     unload() {
         this._pixmap = null;
         this._overlay = null;
+        this._untransformedOverlay = null;
         this._savedTransforms = [];
     }
 
@@ -93,6 +110,10 @@ export default class SpriteEditor extends CanvasElement {
 
     get overlay() {
         return this._overlay;
+    }
+
+    get untranformedOverlay() {
+        return this._untransformedOverlay;
     }
 
     get currentTool() {
@@ -144,10 +165,30 @@ export default class SpriteEditor extends CanvasElement {
         const color1 = new ColorRgba(200, 200, 200);
         const color2 = new ColorRgba(240, 240, 240);
         const bgPixmap = PixmapUtils.buildCheckerBoardTile(8, color1, color2);
-        this._bgBrush = new Brush(this.gfx, bgPixmap);
+        this._checkerBrush = new Brush(this.gfx, bgPixmap);
+    }
+
+    processAction(action) {
+        switch(action) {
+            case SpriteEditor.Actions.ResetView:
+                this.resetView();
+                break;
+        }
     }
 
     processKeyEvent(key, down) {
+
+        if (key === 'Control' && this._mouseDown === false) {
+            this._ctrlDown = down;
+            this._untransformedOverlay.erase();
+            this.sampleColor();
+            this.paint();
+            if (down === false) {
+                this._sampledColor = null;
+            }
+            return;
+        }
+
         if (down) {
             if (this.currentTool.onKeyDown(this, key)) {
                 this.paint();
@@ -180,11 +221,6 @@ export default class SpriteEditor extends CanvasElement {
 
     clear() {
         this._pixmap.erase();
-        this.paint();
-    }
-
-    clearLines() {
-        this._pixmap.filterCleanLines();
         this.paint();
     }
 
@@ -271,6 +307,24 @@ export default class SpriteEditor extends CanvasElement {
 
     onMouseDown(e) {
         e.preventDefault();
+
+        this._mouseDown = true;
+
+        if (this._ctrlDown) {
+            // PickColor
+            this.sampleColor();
+            if (e.button === 0) {
+                this._primaryColor = this._sampledColor;
+                
+            }
+            else if (e.button === 2) {
+                this._secondaryColor = this._sampledColor;
+            }
+            console.log(this._primaryColor);
+            this.paint();
+            return;
+        }
+
         // Tooling //////////////////////////////////////////////////////
         if (e.button === 0 || e.button === 2) {
             this._mouseEvent.button = e.button;
@@ -286,25 +340,17 @@ export default class SpriteEditor extends CanvasElement {
             this._lastPanPos.y = e.offsetY;
 
             this._panning = true;
-            // Picking //////////////////////////////////////////////////
-        } else if (e.altKey && (e.button === 0 || e.button === 2)) {
-            if (this._pixmap.boundingRect.containsPoint(this._mousePos)) {
-                if (e.button === 0) {
-                    this._primaryColor = this._pixmap.getColorAt(
-                        this._mousePos.x,
-                        this._mousePos.y
-                    );
-                } else if (e.button === 2) {
-                    this._secondaryColor = this._pixmap.getColorAt(
-                        this._mousePos.x,
-                        this._mousePos.y
-                    );
-                }
-            }
         }
     }
 
     onMouseUp(e) {
+
+        this._mouseDown = false;
+
+        if(this._ctrlDown && this._sampledColor !== null) {
+            this.paint();
+        }
+
         this._mouseEvent.button = e.button;
         this._panning = false;
         if (this._tools[this._toolIndex].onMouseUp(this, this._mouseEvent)) {
@@ -316,8 +362,8 @@ export default class SpriteEditor extends CanvasElement {
         const mouseX = e.offsetX;
         const mouseY = e.offsetY;
 
-        this._absoluteMousePos.x = mouseX;
-        this._absoluteMousePos.y = mouseY;
+        this._untransormedMousePos.x = mouseX;
+        this._untransormedMousePos.y = mouseY;
 
         this._mousePos.x = mouseX;
         this._mousePos.y = mouseY;
@@ -327,11 +373,17 @@ export default class SpriteEditor extends CanvasElement {
         this._mousePos.x |= 0;
         this._mousePos.y |= 0;
 
+        if (this._ctrlDown) {
+            this.sampleColor();
+            this.paint();
+            return;
+        }
+
         if (!this._panning) {
             this._mouseEvent.pos.x = this._mousePos.x;
             this._mouseEvent.pos.y = this._mousePos.y;
-            this._mouseEvent.absPos.x = this._absoluteMousePos.x;
-            this._mouseEvent.absPos.y = this._absoluteMousePos.y;
+            this._mouseEvent.absPos.x = this._untransormedMousePos.x;
+            this._mouseEvent.absPos.y = this._untransormedMousePos.y;
             this._tools[this._toolIndex].onMouseMove(this, this._mouseEvent);
         } else if (this._panning) {
             const zoom = this._viewTransform._m[0];
@@ -346,6 +398,10 @@ export default class SpriteEditor extends CanvasElement {
         }
 
         this.paint();
+    }
+
+    sampleColor() {
+        this._sampledColor = this._pixmap.getColorAt(this._mousePos.x, this._mousePos.y);
     }
 
     onMouseWheel(e) {
@@ -413,7 +469,7 @@ export default class SpriteEditor extends CanvasElement {
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.fillStyle = "#333";
         g.fillRect(0, 0, this.width, this.height);
-        g.fillStyle = this._bgBrush.pattern;
+        g.fillStyle = this._checkerBrush.pattern;
 
         // Draw Background /////////////////////////////////////////
 
@@ -438,13 +494,45 @@ export default class SpriteEditor extends CanvasElement {
 
             g.drawImage(this._pixmap.canvas, 0, 0);
 
-            // Draw Overlay
+            if (this._ctrlDown && this._sampledColor !== null) {
 
-            //g.setTransform(1, 0, 0, 1, 0, 0);
+                // OffsetX: 0,
+                // OffsetY: -40,
+                // Width: 16,
+                // height: 16
+                const pickerAttribs = SpriteEditor.PickerAttribs;
+                const x1 = this._untransormedMousePos.x - pickerAttribs.Width/2 + pickerAttribs.OffsetX;
+                const y1 = this._untransormedMousePos.y - pickerAttribs.Height/2 + pickerAttribs.OffsetY;
+                const x2 = this._untransormedMousePos.x + pickerAttribs.Width/2 + pickerAttribs.OffsetX;
+                const y2 = this._untransormedMousePos.y + pickerAttribs.Height/2 + pickerAttribs.OffsetY;
 
-            g.globalCompositeOperation = "exclusion";
+                this._untransformedOverlay.erase();
+                this._untransformedOverlay.drawRect(
+                    x1,
+                    y1,
+                    x2,
+                    y2, 
+                    ColorRgba.Black,
+                    2);
+
+                this._untransformedOverlay.fillRectNative( 
+                    x1+2, 
+                    y1+2, 
+                    x2,
+                    y2, 
+                    this._sampledColor.alpha > 0 ? this._sampledColor : this._checkerBrush.pattern,
+                );
+            }
+
+            // Draw Overlays
+
+            g.globalCompositeOperation = "difference";
             g.drawImage(this._overlay.canvas, 0, 0);
             g.globalCompositeOperation = "source-over";
+            
+            g.setTransform(1, 0, 0, 1, 0, 0);
+            g.drawImage(this._untransformedOverlay.canvas, 0, 0);
+            
         }
     }
 }

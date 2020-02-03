@@ -23,7 +23,9 @@ const config = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-        hash: true
+        hash: true,
+        title: 'PicoSystem',
+        favicon: './src/favicon.ico'
     })
   ],
   resolve: {

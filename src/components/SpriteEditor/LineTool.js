@@ -16,7 +16,7 @@ export default class LineTool extends Tool {
         this._lastMousePos = new Point();
         this._mouseDown = false;
         this._curColor = null;
-        this._overlayColor = new ColorRgba(255, 0, 255, 120);
+        this._transparentOverlayColor = new ColorRgba(255, 0, 255);
     }
 
     get name() {
@@ -84,16 +84,16 @@ export default class LineTool extends Tool {
         const y1 = this._y1;
         const x2 = this._x2;
         const y2 = this._y2;
-        const col = this._overlayColor;
         const size = editor.pixelsize;
         const halfPw = editor.overlay.width / 2;
         const halfPh = editor.overlay.height / 2;
         const mirrorX = editor.mirrorX;
         const mirrorY = editor.mirrorY;
         const overlay = editor.overlay;
+        const color = this._curColor.alpha > 0 ? this._curColor : this._transparentOverlayColor;
 
         overlay.erase();
-        overlay.drawLine(x1, y1, x2, y2, size, col);
+        overlay.drawLine(x1, y1, x2, y2, size, color);
 
         if (mirrorX || mirrorY) {
             const mirrorX1Delta = mirrorX ? (x1 - halfPw) * 2 : 0;
@@ -106,7 +106,7 @@ export default class LineTool extends Tool {
                 x2 - mirrorX2Delta,
                 y2 - mirrorY2Delta,
                 size,
-                col
+                color
             );
         }
     }
