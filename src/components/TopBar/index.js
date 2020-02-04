@@ -23,8 +23,8 @@ export default class TopBar extends Element {
         this._fileMenuBtn = new Button('file-button', 'File');
         this._aboutMenuBtn = new Button('help-button', 'Help');
 
-        this._div.appendChild(this._fileMenuBtn.root);
-        this._div.appendChild(this._aboutMenuBtn.root);
+        this._div.append(this._fileMenuBtn.root);
+        this._div.append(this._aboutMenuBtn.root);
 
     }
 }

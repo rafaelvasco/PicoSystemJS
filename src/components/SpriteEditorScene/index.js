@@ -62,10 +62,10 @@ export default class SpriteEditorScene extends Scene {
         );
         this._palette = new Palette();
         this._palette.on(Palette.SelectEvent, this.onPaletteSelect, this);
-        this._div.appendChild(this._palette.root);
-        this._div.appendChild(this._toolBox.root);
-        this._div.appendChild(this._spriteEditor.root);
-        this._div.appendChild(this._modBox.root);
+        this._div.append(this._palette.root);
+        this._div.append(this._toolBox.root);
+        this._div.append(this._spriteEditor.root);
+        this._div.append(this._modBox.root);
     }
 
     processKeyEvent(key, down) {

@@ -1,6 +1,7 @@
 import CanvasElement from "../CanvasElement";
 import Rect from "../../model/Rect";
 import './style.css';
+import CanvasDropDown from "../CanvasControls/CanvasDropdown";
 
 class PaletteEvent {
     constructor() {
@@ -88,8 +89,21 @@ export default class Palette extends CanvasElement {
         this._selectedCellIndexPrimary = -1;
         this._selectedCellIndexSecondary = -1;
         this._event = new PaletteEvent();
-        this._dropdown;
-        this._generateDropdown();
+        const padding = Palette.Padding;
+        this._dropdown = new CanvasDropDown({
+            parent: this,
+            backColor: '#444',
+            borderColor: '#222',
+            x: padding,
+            y: this.height - 45,
+            w: this.width - padding*2,
+            h: 40,
+            font: 'bold 12px Arial',
+            textColor: 'white'
+        });
+        this._dropdown.addItem('Item1', 'Item1');
+        this._dropdown.addItem('Item2', 'Item2');
+        this._dropdown.addItem('Item3', 'Item3');
         this._refresh();
     }
 
@@ -121,6 +135,10 @@ export default class Palette extends CanvasElement {
             }
             this.emit(Palette.SelectEvent, this._event);
             this.paint();
+            return;
+        }
+        if(this._dropdown.bounds.containsPoint(e.offsetX, e.offsetY)) {
+            this._dropdown.onMouseDown(e.button, e.offsetX, e.offsetY);
         }
     }
 
@@ -156,17 +174,6 @@ export default class Palette extends CanvasElement {
             const ry = y * cellSize + y * spacing + padding;
             this._cells.push(new Rect(rx, ry, cellSize, cellSize));
         }
-    }
-
-    _generateDropdown() {
-        this._dropdown = document.createElement('select');
-        const currentOption = new Option('Current', 'Current', true, true);
-        this._dropdown.appendChild(currentOption);
-        this._predefinedPaletteNames.forEach(paletteName => {
-            const option = new Option(paletteName, paletteName, false, false);
-            this._dropdown.appendChild(option);
-        });
-        this.root.appendChild(this._dropdown);
     }
 
     paint() {
@@ -205,5 +212,25 @@ export default class Palette extends CanvasElement {
                 g.strokeRect(x + 3, y + 3, w - 6, h - 6);
             }
         }
+
+        /* Draw Palette Selector */
+        const lastCell = this._cells[this._cells.length-1];
+        this._dropdown.paint(g, {
+           
+        });
+
+        // g.fillStyle = '#444';
+        
+        // const x = padding;
+        // const y = lastCell.y + lastCell.height + 10 + padding;
+        // const width = this.width - padding*2;
+        // const height = 40;
+        // g.fillRect(x, y, width, height);
+        // g.strokeStyle = "#222";
+        // g.strokeRect(x, y, width, height);
+        // g.font = 'bold 12px Arial';
+        // g.fillStyle = "white";
+        // const textMeasure = g.measureText('Hello');
+        // g.fillText('Hello', x + width/2 - textMeasure.width/2, y + height/2 + textMeasure.actualBoundingBoxAscent/2);
     }
 }

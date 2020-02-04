@@ -20,6 +20,6 @@ export default class CenterPanel extends Element {
 
     addSection(element) {
         this._sections.push(element.id);
-        this._div.appendChild(element.root);
+        this._div.append(element.root);
     }
 }

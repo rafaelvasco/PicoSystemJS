@@ -85,7 +85,7 @@ export default class ModifiersBox extends Element {
                             });
 
                             this._buttons[elementId] = button;
-                            this._div.appendChild(button.root);
+                            this._div.append(button.root);
 
                             break;
                         case ModifiersBox.ToggablesSection:
@@ -107,7 +107,7 @@ export default class ModifiersBox extends Element {
                             });
 
                             this._toggables[elementId] = toggable;
-                            this._div.appendChild(toggable.root);
+                            this._div.append(toggable.root);
 
                             break;
                     }

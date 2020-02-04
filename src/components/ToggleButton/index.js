@@ -48,7 +48,7 @@ export default class ToggleButton extends Element {
         });
         this._labelElement = document.createElement("span");
         this._labelElement.innerText = this._label;
-        this._div.appendChild(this._labelElement);
+        this._div.append(this._labelElement);
         this._div.style.display = "grid";
         this._div.style.justifyItems = "center";
         this._div.style.alignItems = "center";

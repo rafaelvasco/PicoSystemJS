@@ -37,7 +37,7 @@ export default class ToolBox extends Element {
 
             this._toolBtns[toolName] = btn;
 
-            this._div.appendChild(btn.root);
+            this._div.append(btn.root);
         }
     }
 

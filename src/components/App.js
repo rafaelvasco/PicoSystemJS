@@ -23,8 +23,8 @@ export default class App {
 
         this._currentScene = this._spriteEditorScene;
 
-        document.body.appendChild(this._topbar.root);
-        document.body.appendChild(this._centerPanel.root);
+        document.body.append(this._topbar.root);
+        document.body.append(this._centerPanel.root);
     }
 
     onGlobalKeyDown(e) {
