@@ -104,6 +104,13 @@ export default class Palette extends CanvasElement {
         this._dropdown.addItem('Item1', 'Item1');
         this._dropdown.addItem('Item2', 'Item2');
         this._dropdown.addItem('Item3', 'Item3');
+        this._dropdown.addItem('Item4', 'Item4');
+        this._dropdown.addItem('Item5', 'Item5');
+        this._dropdown.addItem('Item6', 'Item6');
+        this._dropdown.addItem('Item7', 'Item7');
+        this._dropdown.addItem('Item8', 'Item8');
+        this._dropdown.addItem('Item9', 'Item9');
+        this._dropdown.addItem('Item10', 'Item10');
         this._refresh();
     }
 
@@ -140,6 +147,7 @@ export default class Palette extends CanvasElement {
         if(this._dropdown.bounds.containsPoint(e.offsetX, e.offsetY)) {
             this._dropdown.onMouseDown(e.button, e.offsetX, e.offsetY);
         }
+
     }
 
     onMouseUp(e) {}
@@ -157,6 +165,10 @@ export default class Palette extends CanvasElement {
                 break;
             }
         }
+    }
+
+    onMouseWheel(e) {   
+        this._dropdown.onMouseWheel(e.deltaY);
     }
 
     _generateCells() {
@@ -179,6 +191,8 @@ export default class Palette extends CanvasElement {
     paint() {
         const g = this._gfx;
         g.fillStyle = "#333";
+        g.resetTransform();
+        g.clearRect(0, 0, this.width, this.height);
         g.fillRect(0, 0, this.width, this.height);
         g.strokeStyle = "#777";
         g.strokeRect(0, 0, this.width, this.height);
@@ -214,23 +228,6 @@ export default class Palette extends CanvasElement {
         }
 
         /* Draw Palette Selector */
-        const lastCell = this._cells[this._cells.length-1];
-        this._dropdown.paint(g, {
-           
-        });
-
-        // g.fillStyle = '#444';
-        
-        // const x = padding;
-        // const y = lastCell.y + lastCell.height + 10 + padding;
-        // const width = this.width - padding*2;
-        // const height = 40;
-        // g.fillRect(x, y, width, height);
-        // g.strokeStyle = "#222";
-        // g.strokeRect(x, y, width, height);
-        // g.font = 'bold 12px Arial';
-        // g.fillStyle = "white";
-        // const textMeasure = g.measureText('Hello');
-        // g.fillText('Hello', x + width/2 - textMeasure.width/2, y + height/2 + textMeasure.actualBoundingBoxAscent/2);
+        this._dropdown.paint(g);
     }
 }
