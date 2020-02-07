@@ -94,6 +94,7 @@ export default class Palette extends CanvasElement {
             parent: this,
             backColor: '#444',
             borderColor: '#222',
+            itemHoverColor: '#222',
             x: padding,
             y: this.height - 45,
             w: this.width - padding*2,
@@ -144,10 +145,7 @@ export default class Palette extends CanvasElement {
             this.paint();
             return;
         }
-        if(this._dropdown.bounds.containsPoint(e.offsetX, e.offsetY)) {
-            this._dropdown.onMouseDown(e.button, e.offsetX, e.offsetY);
-        }
-
+        this._dropdown.onMouseDown(e.button, e.offsetX, e.offsetY);
     }
 
     onMouseUp(e) {}
@@ -155,16 +153,22 @@ export default class Palette extends CanvasElement {
     onMouseMove(e) {
         const x = e.offsetX;
         const y = e.offsetY;
-        const cells = this._cells;
-        const cellsLength = cells.length;
-        this._hoveredCellIndex = -1;
-        for (let i = 0; i < cellsLength; ++i) {
-            const cellRect = cells[i];
-            if (cellRect.containsPoint(x, y)) {
-                this._hoveredCellIndex = i;
-                break;
+        if(this._dropdown.isDropdown === false) {
+            const cells = this._cells;
+            const cellsLength = cells.length;
+            this._hoveredCellIndex = -1;
+            for (let i = 0; i < cellsLength; ++i) {
+                const cellRect = cells[i];
+                if (cellRect.containsPoint(x, y)) {
+                    this._hoveredCellIndex = i;
+                    break;
+                }
             }
         }
+        else {
+            this._hoveredCellIndex = -1;
+        }
+        this._dropdown.onMouseMove(x, y);
     }
 
     onMouseWheel(e) {   

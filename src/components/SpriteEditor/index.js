@@ -320,7 +320,6 @@ export default class SpriteEditor extends CanvasElement {
             else if (e.button === 2) {
                 this._secondaryColor = this._sampledColor;
             }
-            console.log(this._primaryColor);
             this.paint();
             return;
         }
