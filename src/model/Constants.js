@@ -3,5 +3,6 @@ export const ToolNames = {
     Fill: 'Fill',
     Move: 'Move',
     Rect: 'Rect',
-    Line: 'Line'
+    Line: 'Line',
+    Oval: 'Oval'
 }

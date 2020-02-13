@@ -1,18 +1,15 @@
 import Rect from "../../model/Rect";
+import CanvasControl from "./CanvasControl";
 
-export default class CanvasDropDown {
+export default class CanvasDropDown extends CanvasControl {
     static ItemHeight = 30;
 
+    static ChangeEvent = 0;
+
     constructor(params) {
-        this.parent = params.parent;
+        super(params);
         this._items = [];
         this._currentIndex = 0;
-        this._bounds = new Rect(params.x, params.y, params.w, params.h);
-        this._backColor = params.backColor;
-        this._borderColor = params.borderColor;
-        this._font = params.font;
-        this._textColor = params.textColor;
-        this._itemHoverColor = params.itemHoverColor;
         this._dropdown = false;
         this._translationY = 0;
         this._dropDownHeight = 0;
@@ -26,11 +23,14 @@ export default class CanvasDropDown {
         return this._dropdown;
     }
 
-    addItem(label, value) {
+    addItem(label, value, selected) {
         this._items.push({
             label: label,
             value: value
         });
+        if (typeof selected !== "undefined") {
+            this._currentIndex = this._items.length - 1;
+        }
         this._rebuildDropDown();
     }
 
@@ -61,16 +61,22 @@ export default class CanvasDropDown {
             if (this._bounds.containsPoint(x, y) && this._hoveredIndex === -1) {
                 this._dropdown = !this._dropdown;
                 this._translationY = 0;
-                this.parent.paint();
-            }
-            else {
+                return true;
+            } else if (this._dropdown === true) {
                 this._dropdown = false;
                 this._translationY = 0;
-                this._currentIndex = this._hoveredIndex;
-                this._hoveredIndex = -1;
-                this.parent.paint();
+                if (this._hoveredIndex >= 0) {
+                    this._currentIndex = this._hoveredIndex;
+                    this._hoveredIndex = -1;
+                    this.emit(
+                        CanvasDropDown.ChangeEvent,
+                        this._items[this._currentIndex].value
+                    );
+                }
+                return true;
             }
         }
+        return false;
     }
 
     onMouseMove(_, y) {
@@ -80,16 +86,15 @@ export default class CanvasDropDown {
             this._hoveredIndex =
                 ((y - this._dropdownY - this._translationY) / itemHeight) | 0;
             if (this._hoveredIndex !== this._lastHoveredIndex) {
-                this.parent.paint();
-                return;
+                return true;
             }
         } else {
             if (this._hoveredIndex >= 0) {
                 this._hoveredIndex = -1;
-                this.parent.paint();
-                return;
+                return true;
             }
-        }
+        } 
+        return false;
     }
 
     onMouseWheel(delta) {
@@ -101,24 +106,29 @@ export default class CanvasDropDown {
         if (this._translationY < -this._maxTranslationY) {
             this._translationY = -this._maxTranslationY;
         }
-        this.parent.paint();
+        return true;
     }
 
     paint(g) {
         g.save();
-        g.fillStyle = this._backColor;
-        const x = this._bounds.x;
-        const y = this._bounds.y;
-        const w = this._bounds.width;
-        const h = this._bounds.height;
+        const backColor = this.style.backColor;
+        const borderColor = this.style.borderColor;
+        const textColor = this.style.textColor;
+        const itemHoverColor = this.style.itemHoverColor;
+        const font = this.style.font;
+        g.fillStyle = backColor;
+        const x = this.bounds.x;
+        const y = this.bounds.y;
+        const w = this.bounds.width;
+        const h = this.bounds.height;
         const itemHeight = CanvasDropDown.ItemHeight;
         g.fillRect(x, y, w, h);
-        g.strokeStyle = this._borderColor;
+        g.strokeStyle = borderColor;
         g.strokeRect(x, y, w, h);
         if (this._items.length > 0) {
             const currentItem = this._items[this._currentIndex];
-            g.font = this._font;
-            g.fillStyle = this._textColor;
+            g.font = font;
+            g.fillStyle = textColor;
             const textMeasure = g.measureText(currentItem.label);
             const labelHeight = textMeasure.actualBoundingBoxAscent;
             g.fillText(
@@ -128,8 +138,8 @@ export default class CanvasDropDown {
             );
 
             if (this._dropdown === true) {
-                g.fillStyle = this._backColor;
-                g.strokeStyle = this._borderColor;
+                g.fillStyle = backColor;
+                g.strokeStyle = borderColor;
 
                 const dropdownY = this._dropdownY;
                 g.beginPath();
@@ -141,10 +151,10 @@ export default class CanvasDropDown {
                 for (let i = 0; i < this._items.length; ++i) {
                     const item = this._items[i];
                     const textMeasure = g.measureText(item.label);
-                    g.fillStyle = this._textColor;
+                    g.fillStyle = textColor;
                     const labelWidth = textMeasure.width;
                     if (i === this._hoveredIndex) {
-                        g.fillStyle = this._itemHoverColor;
+                        g.fillStyle = itemHoverColor;
                         g.fillRect(
                             x,
                             dropdownY + i * itemHeight,
@@ -152,7 +162,7 @@ export default class CanvasDropDown {
                             itemHeight
                         );
                     }
-                    g.fillStyle = this._textColor;
+                    g.fillStyle = textColor;
                     g.fillText(
                         item.label,
                         x + w / 2 - labelWidth / 2,

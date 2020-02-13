@@ -1,7 +1,7 @@
 import Element from "../Element";
-import "./style.css";
 import Button from "../Button";
 import ToggleButton from "../ToggleButton";
+import "./style.css";
 
 export default class ModifiersBox extends Element {
     static ClearId = 'clear';
@@ -10,7 +10,7 @@ export default class ModifiersBox extends Element {
     static VMirrorId = 'v-mirror-toggle';
     static ButtonsSection = 'Buttons';
     static ToggablesSection = 'Toggables';
-    static ActionEvent = "mod-box-action";
+    static ActionEvent = 0;
     static ClearAction = "clear";
     static EnableHMirrorAction = "h-mirror-enable";
     static EnableVMirrorAction = "v-mirror-enable";

@@ -31,7 +31,6 @@ export default class EventEmitter {
 
     emit(label, ...args) {
         let listeners = this._listeners.get(label);
-
         if (listeners && listeners.length) {
             listeners.forEach(listener => {
                 listener(...args);

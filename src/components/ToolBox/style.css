@@ -79,3 +79,12 @@
 #tool-box > #line-btn:active {
     background-color: rgba(194, 169, 25, 0.5);
 }
+
+#tool-box > #oval-btn.on {
+    background-color: rgb(194, 87, 25);
+}
+
+#tool-box > #oval-btn:active {
+    background-color: rgba(194, 87, 25, 0.5);
+}
+

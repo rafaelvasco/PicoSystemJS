@@ -3,6 +3,12 @@ import Element from "../Element";
 export default class Button extends Element {
     constructor(id, label) {
         super(id);
+        this._button;
+        this._initComponents(label);
+       
+    }
+
+    _initComponents(label) {
         this._button = document.createElement("button");
         this._button.style.padding = '5px';
         this._button.className = "button";

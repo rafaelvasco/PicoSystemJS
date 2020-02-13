@@ -15,9 +15,9 @@ export default class ColorRgba {
     }
 
     get hexStr() {
-        const r = this._r.toString(16);
-        const g = this._g.toString(16);
-        const b = this._b.toString(16);
+        let r = this._r.toString(16);
+        let g = this._g.toString(16);
+        let b = this._b.toString(16);
 
         if (this._r < 16) { r = '0' + r; }
         if (this._g < 16) { g = '0' + g; }

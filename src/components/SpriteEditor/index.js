@@ -11,6 +11,7 @@ import FillTool from "./FillTool";
 import MoveTool from "./MoveTool";
 import RectTool from "./RectTool";
 import LineTool from "./LineTool";
+import OvalTool from "./OvalTool";
 
 class MouseEvent {
     constructor() {
@@ -21,6 +22,8 @@ class MouseEvent {
 }
 
 export default class SpriteEditor extends CanvasElement {
+
+    static Ref;
 
     static PickerAttribs = {
         OffsetX: 0,
@@ -33,11 +36,23 @@ export default class SpriteEditor extends CanvasElement {
         ResetView: 0
     }
 
+    static Events = {
+        PixmapChanged: 0,
+        SnapshotSaved: 1
+    }
+
+    static MaxHistory = 16;
+
+    static SnapshotIndex = 0;
+
     constructor(width, height) {
         super("sprite-editor", width, height);
+        SpriteEditor.Ref = this;
         this._pixelSize = 4;
         this._pixmap = Pixmap.create(width, height);
         this._overlay = Pixmap.create(width, height);
+        this._snapshots = {};
+        this._currentSnapshot = null;
         this._untransformedOverlay = Pixmap.create(width, height);
         this._bgRect = new Rect(0, 0, width, height);
         this._savedTransforms = [];
@@ -52,6 +67,7 @@ export default class SpriteEditor extends CanvasElement {
         this._tools = [];
         this._toolsMap = {};
         this._toolIndex = 0;
+        this._currentToolName;
         this._mouseEvent = new MouseEvent();
         this._panning = false;
         this._lastPanPos = new Point();
@@ -149,11 +165,13 @@ export default class SpriteEditor extends CanvasElement {
         const move = new MoveTool();
         const rect = new RectTool();
         const line = new LineTool();
+        const oval = new OvalTool();
         this._registerTool(pen);
         this._registerTool(fill);
         this._registerTool(move);
         this._registerTool(rect);
         this._registerTool(line);
+        this._registerTool(oval);
     }
 
     _registerTool(tool) {
@@ -222,6 +240,7 @@ export default class SpriteEditor extends CanvasElement {
     clear() {
         this._pixmap.erase();
         this.paint();
+        this.emit(SpriteEditor.Events.PixmapChanged);
     }
 
     translate(dx, dy) {
@@ -272,9 +291,35 @@ export default class SpriteEditor extends CanvasElement {
         this.paint();
     }
 
+    saveSnapshot(label) {
+        const pixmap = Pixmap.createFromPixmap(this.pixmap);
+        const key = SpriteEditor.SnapshotIndex++;
+        const snapshot = {
+            pixmap: pixmap,
+            key: key,
+            label: label
+        };
+        this._snapshots[key] = snapshot;
+        this._currentSnapshot = snapshot;
+        this.emit(SpriteEditor.Events.SnapshotSaved, snapshot);
+    }
+
+    saveFirstSnapshot() {
+        this.saveSnapshot('New Sprite');
+    }
+
+    setSnapshot(snapshotKey) {
+        const snapshot = this._snapshots[snapshotKey];
+        if(snapshot) {
+            this._pixmap = snapshot.pixmap;
+        }
+        this.paint();
+    }
+
     setTool(toolName) {
         if (typeof this._toolsMap[toolName] !== "undefined") {
             this._toolIndex = this._toolsMap[toolName];
+            this._currentToolName = toolName;
             this.paint();
         } else {
             console.error(`No tool registered with this name: ${toolName}`);
@@ -332,6 +377,7 @@ export default class SpriteEditor extends CanvasElement {
                 this._tools[this._toolIndex].onMouseDown(this, this._mouseEvent)
             ) {
                 this.paint();
+                this.emit(SpriteEditor.Events.PixmapChanged);
             }
             // Panning /////////////////////////////////////////////////
         } else if (e.button === 1) {
@@ -354,6 +400,8 @@ export default class SpriteEditor extends CanvasElement {
         this._panning = false;
         if (this._tools[this._toolIndex].onMouseUp(this, this._mouseEvent)) {
             this.paint();
+            this.emit(SpriteEditor.Events.PixmapChanged);
+            this.saveSnapshot(this._currentToolName);
         }
     }
 
@@ -495,10 +543,6 @@ export default class SpriteEditor extends CanvasElement {
 
             if (this._ctrlDown && this._sampledColor !== null) {
 
-                // OffsetX: 0,
-                // OffsetY: -40,
-                // Width: 16,
-                // height: 16
                 const pickerAttribs = SpriteEditor.PickerAttribs;
                 const x1 = this._untransormedMousePos.x - pickerAttribs.Width/2 + pickerAttribs.OffsetX;
                 const y1 = this._untransormedMousePos.y - pickerAttribs.Height/2 + pickerAttribs.OffsetY;

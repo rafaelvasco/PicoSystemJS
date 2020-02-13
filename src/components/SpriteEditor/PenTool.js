@@ -58,12 +58,12 @@ export default class PenTool extends Tool {
 
     onMouseUp(editor, event) {
         this._painting = false;
-        return false;
+        return true;
     }
 
     onMouseMove(editor, event) {
         if (!this._painting) {
-            return;
+            return false;
         }
 
         const button = event.button;

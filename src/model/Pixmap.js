@@ -407,40 +407,16 @@ export default class Pixmap {
      * @param {*} x2
      * @param {*} y2
      * @param {*} color
-     * @param {*} proportional
      */
-    drawCircle(x1, y1, x2, y2, color, proportional = false) {
+    drawCircle(x1, y1, x2, y2, color) {
         let width = Math.abs(x1 - x2);
         let height = Math.abs(y1 - y2);
+        const pw = this.width;
+        const ph = this.height;
 
         if (width < 1 || height < 1) return;
 
-        if (proportional === true) {
-            width = Math.min(width, height);
-            height = width;
-        }
-
-        if (x1 > x2) {
-            [x1, x2] = [x2, x1];
-
-            if (proportional === true) {
-                x1 = x2 - width;
-            }
-        } else if (proportional === true) {
-            x2 = x1 + width;
-        }
-
-        if (y1 > y2) {
-            [y1, y2] = [y2, y1];
-
-            if (proportional === true) {
-                y1 = y2 - height;
-            }
-        } else if (proportional === true) {
-            y2 = y1 + height;
-        }
-
-        const data = this._pixelData.get(x1, y1, width, height);
+        const data = this._pixelData.get(0, 0, pw, ph);
         const rgba = color.rgba32;
 
         for (let x = 0; x <= width; ++x) {
@@ -449,9 +425,9 @@ export default class Pixmap {
             const y = (yPerc * height) / 2;
 
             const idx1 =
-                Math.round(x1 + x) + Math.round(y1 + height / 2 + y) * width;
+                Math.round(x1 + x) + Math.round(y1 + height / 2 + y) * pw;
             const idx2 =
-                Math.round(x1 + x) + Math.round(y1 + height / 2 - y) * width;
+                Math.round(x1 + x) + Math.round(y1 + height / 2 - y) * pw;
 
             data[idx1] = rgba;
             data[idx2] = rgba;
@@ -463,9 +439,9 @@ export default class Pixmap {
             const x = (xPerc * width) / 2;
 
             const idx1 =
-                Math.round(x1 + width / 2 + x) + Math.round(y1 + y) * width;
+                Math.round(x1 + width / 2 + x) + Math.round(y1 + y) * pw;
             const idx2 =
-                Math.round(x1 + width / 2 - x) + Math.round(y1 + y) * width;
+                Math.round(x1 + width / 2 - x) + Math.round(y1 + y) * pw;
 
             data[idx1] = rgba;
             data[idx2] = rgba;
@@ -584,7 +560,6 @@ export default class Pixmap {
         }
 
         let queue = [index];
-        
 
         while(queue.length) {
             index = queue.pop();
@@ -631,16 +606,17 @@ export default class Pixmap {
 
         let index = x + y * pw;
 
-        const srcColor = data[index];
-        const dstColor = color.array;
+        const pickAt = this._getIntColorAt;
+        const srcColor = pickAt(data, index);
+        const dstColor = color.rgba32;
 
         if (srcColor === dstColor) {
             console.info("Source and Destination Colors are Equal");
             return;
         } else {
-            for (let p = 0; p < pw * ph; ++p) {
-                if (data[p] === srcColor) {
-                    data[p] = dstColor;
+            for (let i = 0; i < data.length; ++i) {
+                if (pickAt(data, i) === srcColor) {
+                    data[i] = dstColor;
                 }
             }
 
@@ -659,12 +635,12 @@ export default class Pixmap {
         const pw = this.width;
         const ph = this.height;
 
+        const pickAt = this._getIntColorAt;
         const data = this._pixelData.get(0, 0, pw, ph);
-        const area = pw * ph;
-        const c2rgba = c2.rgba32();
+        const c2rgba = c2.rgba32;
 
-        for (let i = 0; i < area; ++i) {
-            if (data[i] === c1) {
+        for (let i = 0; i < data.length; ++i) {
+            if (pickAt(data, i) === c1) {
                 data[i] = c2rgba;
             }
         }
@@ -705,9 +681,8 @@ export default class Pixmap {
         const pw = this.width;
         const ph = this.height;
         const data = this._pixelData.get(0, 0, pw, ph);
-        const area = pw * ph;
 
-        for (let p = 0; p < area; ++p) {
+        for (let i = 0; i < data.length; ++i) {
             const dataPixel = data[p];
             if (((dataPixel >> 24) & 0x000000ff) === 0) {
                 continue;
@@ -1176,25 +1151,29 @@ export default class Pixmap {
     /**
      * Get and array containing all the colors in the Pixmap
      */
-    // getPallete() {
-    //     // TODO: Do not repeat colors
+    getPallete() {
+        const uniqueColors = [];
+        const data = this._pixelData.get(0, 0, this.width, this.height);
+        for (let i = 0; i < data.length; ++i) {
+            const col = data[i];
+            if(col === 0){
+                continue;
+            }
+            if (uniqueColors.indexOf(col) === -1) {
+                uniqueColors.push(col);
+            }
+        }
 
-    //     let pallete = [];
+        const palette = [];
 
-    //     const imageData = this._gfx.getImageData(0, 0, this.width, this.height);
-    //     const data = imageData.data;
+        if (uniqueColors.length === 0) {
+            return palette;
+        }
 
-    //     for (let i = 0; i < data.length; ++i) {
-    //         let r = data[0];
-    //         let g = data[1];
-    //         let b = data[2];
-    //         let a = data[3];
+        for(let i = 0; i < uniqueColors.length; ++i) {
+            palette.push(ColorRgba.fromRgba32(uniqueColors[i]).hexStr);
+        }
 
-    //         let color = new ColorRgba(r, g, b, a);
-
-    //         pallete.push(color);
-    //     }
-
-    //     return pallete;
-    // }
+        return palette;
+    }
 }

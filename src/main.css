@@ -3,18 +3,25 @@
 :root {
 
     --toolbox-width: 77px;
-    --toolbox-height: 800px;
+    --toolbox-height: 600px;
     --toolbox-padding: 2px;
     --toolbox-bg-col: rgb(63,63,63);
     --toolbox-border-col: rgb(105, 105, 105);
     --toolbox-shadow-col: rgba(0, 0, 0, 0.27);
 
     --modbox-width: 77px;
-    --modbox-height: 800px;
+    --modbox-height: 600px;
     --modbox-padding: 2px;
     --modbox-bg-col: rgb(63,63,63);
     --modbox-border-col: rgb(105, 105, 105);
     --modbox-shadow-col: rgba(0, 0, 0, 0.27);
+
+    --snapshot-width: 200px;
+    --snapshot-height: 300px;
+    --snapshot-padding: 10px;
+    --snapshot-bg-col: rgb(63,63,63);
+    --snapshot-border-col: rgb(105, 105, 105);
+    --snapshot-shadow-col: rgba(0, 0, 0, 0.27);
 }
 
 

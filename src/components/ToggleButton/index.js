@@ -3,8 +3,8 @@ import Element from "../Element";
 export default class ToggleButton extends Element {
     static Groups = {};
     static ClassName = 'toggle-button';
-    static EventOn = 'toggle-on';
-    static EventOff =  'toggle-off';
+    static EventOn = 0;
+    static EventOff =  1;
 
     constructor(id, label, on = false, group = undefined) {
         super(id);

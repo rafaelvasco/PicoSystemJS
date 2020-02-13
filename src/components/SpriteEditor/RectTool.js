@@ -44,7 +44,7 @@ export default class RectTool extends Tool {
         return false;
     }
 
-    onMouseUp(editor, event) {
+    onMouseUp(editor, _) {
         this._mouseDown = false;
         if (this._rect.isEmpty === false) {
             editor.overlay.erase();

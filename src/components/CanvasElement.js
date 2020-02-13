@@ -5,10 +5,7 @@ export default class CanvasElement extends Element {
         super(id);
         this._width = width;
         this._height = height;
-        // this._div = document.createElement('div');
-        // this._div.setAttribute('id', this.id + '-wrapper');
         this._canvas = document.createElement("canvas");
-        // this._div.appendChild(this.canvas);
         this._canvas.setAttribute('id', this.id);
         this._canvas.width = width;
         this._canvas.height = height;

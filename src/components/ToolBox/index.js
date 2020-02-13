@@ -3,7 +3,7 @@ import "./style.css";
 import ToggleButton from "../ToggleButton";
 
 export default class ToolBox extends Element {
-    static SelectEvent = "select-tool";
+    static SelectEvent = 0;
 
     constructor() {
         super("tool-box");

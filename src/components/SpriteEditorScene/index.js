@@ -5,6 +5,7 @@ import ToolBox from "../ToolBox";
 import ModifiersBox from "../ModifiersBox";
 import { ToolNames } from "../../model/Constants";
 import Palette from "../Palette";
+import SnapshotManager from "../SnapshotManager";
 
 export default class SpriteEditorScene extends Scene {
     static InitialTool = ToolNames.Pen;
@@ -14,7 +15,8 @@ export default class SpriteEditorScene extends Scene {
             "2": ToolNames.Fill,
             "3": ToolNames.Move,
             "4": ToolNames.Rect,
-            "5": ToolNames.Line
+            "5": ToolNames.Line,
+            "6": ToolNames.Oval
         },
         Modifiers: {
             "c": ModifiersBox.ClearId,
@@ -34,9 +36,13 @@ export default class SpriteEditorScene extends Scene {
         this._modBox;
         this._palette;
         this._spriteEditor;
+        this._snapshotManager;
         this._shortcuts = {};
         this._initElements();
+        this._hookupEvents();
         this._attachShortcuts();
+        this._spriteEditor.saveFirstSnapshot();
+
     }
 
     get root() {
@@ -55,17 +61,29 @@ export default class SpriteEditorScene extends Scene {
         this._toolBox.on(ToolBox.SelectEvent, this.onToolBoxSelect, this);
         this._toolBox.setOn(SpriteEditorScene.InitialTool);
         this._modBox = new ModifiersBox();
+        
+        this._palette = new Palette();
+        this._palette.updateCurrentColorsPalette(this._spriteEditor.pixmap);
+
+        this._snapshotManager = new SnapshotManager();
+        
+        this._div.append(this._palette.root);
+        this._div.append(this._toolBox.root);
+        this._div.append(this._spriteEditor.root);
+        this._div.append(this._snapshotManager.root);
+        this._div.append(this._modBox.root);
+    }
+
+    _hookupEvents() {
         this._modBox.on(
             ModifiersBox.ActionEvent,
             this.onModBoxActionTriggered,
             this
         );
-        this._palette = new Palette();
+        this._spriteEditor.on(SpriteEditor.Events.PixmapChanged, this.onSpriteEditorPaintDown, this);
+        this._spriteEditor.on(SpriteEditor.Events.SnapshotSaved, this.onSpriteEditorSnapshotSaved, this);
         this._palette.on(Palette.SelectEvent, this.onPaletteSelect, this);
-        this._div.append(this._palette.root);
-        this._div.append(this._toolBox.root);
-        this._div.append(this._spriteEditor.root);
-        this._div.append(this._modBox.root);
+        this._snapshotManager.on(SnapshotManager.Events.SnapshotSelected, this.onSnapshotManagerSelected, this);
     }
 
     processKeyEvent(key, down) {
@@ -104,6 +122,14 @@ export default class SpriteEditorScene extends Scene {
     onToolBoxSelect(tool) {
         this._spriteEditor.setTool(tool);
     }
+
+    onSpriteEditorPaintDown() {
+        this._palette.updateCurrentColorsPalette(this._spriteEditor.pixmap);
+    }
+
+    onSpriteEditorSnapshotSaved(snapshot) {
+        this._snapshotManager.addSnapshot(snapshot);
+    }
     
     onPaletteSelect(paletteEvent) {
         if (paletteEvent.button === 0) {
@@ -112,6 +138,10 @@ export default class SpriteEditorScene extends Scene {
         else if (paletteEvent.button === 2) {
             this._spriteEditor.secondaryColor = paletteEvent.color;
         }
+    }
+
+    onSnapshotManagerSelected(snapShotKey) {
+        this._spriteEditor.setSnapshot(snapShotKey);
     }
 
     onModBoxActionTriggered(action) {
