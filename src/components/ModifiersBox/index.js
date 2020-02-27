@@ -39,16 +39,10 @@ export default class ModifiersBox extends Element {
     };
 
     constructor() {
-        super("mod-box");
-        this._div;
+        super({id: "mod-box"});
         this._toggables = {};
         this._buttons = {};
-        this._initElements();
         this._populateActions();
-    }
-
-    get root() {
-        return this._div;
     }
 
     triggerModifer(id) {
@@ -85,7 +79,7 @@ export default class ModifiersBox extends Element {
                             });
 
                             this._buttons[elementId] = button;
-                            this._div.append(button.root);
+                            this.add(button);
 
                             break;
                         case ModifiersBox.ToggablesSection:
@@ -107,7 +101,7 @@ export default class ModifiersBox extends Element {
                             });
 
                             this._toggables[elementId] = toggable;
-                            this._div.append(toggable.root);
+                            this.add(toggable);
 
                             break;
                     }
@@ -116,8 +110,4 @@ export default class ModifiersBox extends Element {
         });
     }
 
-    _initElements() {
-        this._div = document.createElement("div");
-        this._div.setAttribute("id", this.id);
-    }
 }

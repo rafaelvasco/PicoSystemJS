@@ -33,7 +33,7 @@ export default class MoveTool extends Tool {
             this._moving = false;
         }
 
-        return false;
+        return true;
     }
 
     onMouseMove(editor, event) {

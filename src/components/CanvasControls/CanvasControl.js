@@ -7,6 +7,7 @@ export default class CanvasControl extends EventEmitter {
         this._canvasElementParent = params.parent;
         this._bounds = params.bounds;
         this._style = params.style;
+        this._hovered = false;
     }
 
     get style() {
@@ -23,7 +24,10 @@ export default class CanvasControl extends EventEmitter {
 
     refresh() {
         this._canvasElementParent.paint();
-        this.paint(this._canvasElementParent.gfx);
+    }
+
+    hitPoint(x, y) {
+        return this.bounds.containsPoint(x, y);
     }
 
     onMouseDown(button, x, y) {}
@@ -31,6 +35,10 @@ export default class CanvasControl extends EventEmitter {
     onMouseUp(button, x, y) {}
 
     onMouseMove(x, y) {}
+
+    onMouseEnter() {}
+
+    onMouseLeave() {}
 
     paint(g) {
 

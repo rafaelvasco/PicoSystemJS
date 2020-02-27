@@ -1,0 +1,12 @@
+{
+    "CurrentPaletteKey": "Current",
+    "Label": "Palette",
+    "LabelFont": "bold 12px Arial",
+    "GridTopSpacing": 22,
+    "LabelTopSpacing": 20,
+    "CellSize": 24,
+    "Width": 214,
+    "Height": 300,
+    "Padding": 7,
+    "CellSpacing": 1
+}

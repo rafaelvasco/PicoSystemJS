@@ -1,4 +1,5 @@
 import ColorRgba from "./ColorRgba";
+import { Dom } from "../utils/dom";
 
 class PixelData {
     constructor(gfx) {
@@ -29,7 +30,7 @@ export default class Pixmap {
         this._canvas = null;
         this._gfx = null;
         this._dataUrl = null;
-        this._canvas = document.createElement("canvas");
+        this._canvas = Dom.create("canvas");
         this._canvas.width = width;
         this._canvas.height = height;
         this._gfx = this._canvas.getContext("2d", {
@@ -660,6 +661,10 @@ export default class Pixmap {
         } else {
             this._gfx.drawImage(bitmapSource, 0, 0, width, height);
         }
+    }
+
+    pastePixmap(pixmap) {
+        this.drawBitmap(pixmap.canvas, pixmap.width, pixmap.height);
     }
 
     /**

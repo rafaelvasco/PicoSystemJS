@@ -1,20 +1,23 @@
 import Element from "../Element";
 
 export default class ToggleButton extends Element {
+
     static Groups = {};
-    static ClassName = 'toggle-button';
     static EventOn = 0;
     static EventOff =  1;
 
     constructor(id, label, on = false, group = undefined) {
-        super(id);
-        this._label = label;
-        this._div;
-        this._labelElement;
-        this._initElements();
+        super({
+            id: id,
+            className: 'btn',
+            elementTag: 'button',
+            label: label
+        });
+        this.addClass('toggle-btn');
         this._on = false;
-        this.setOn(on);
         this._group = group;
+        this._initElements();
+        this.setOn(on);
 
         if (group) {
             if (!ToggleButton.Groups[group]) {
@@ -24,15 +27,12 @@ export default class ToggleButton extends Element {
         }
     }
 
-    get root() {
-        return this._div;
-    }
-
     get label() {
         return this._label;
     }
     set label(val) {
         this._label = val;
+        this._domElement.textContent = val;
     }
 
     get isOn() {
@@ -40,28 +40,16 @@ export default class ToggleButton extends Element {
     }
 
     _initElements() {
-        this._div = document.createElement("div");
-        this._div.className = ToggleButton.ClassName;
-        this._div.setAttribute("id", this.id);
-        this._div.addEventListener("click", () => {
+
+        this.on("click", () => {
             this._onClick();
         });
-        this._labelElement = document.createElement("span");
-        this._labelElement.innerText = this._label;
-        this._div.append(this._labelElement);
-        this._div.style.display = "grid";
-        this._div.style.justifyItems = "center";
-        this._div.style.alignItems = "center";
-        this._div.style.boxSizing = "border-box";
-        this._div.style.cursor = "default";
-        this._div.style.userSelect = "none";
-        this._div.style.padding = "5px";
     }
 
     setOn(on, emitEvent = false) {
         this._on = on;
         if (on) {
-            this._div.classList.add("on");
+            this.addClass('on');
             if (emitEvent === true) {
                 this.emit(ToggleButton.EventOn);
             }
@@ -77,7 +65,7 @@ export default class ToggleButton extends Element {
                 }
             }
         } else {
-            this._div.classList.remove("on");
+            this.removeClass('on');
             if (emitEvent === true) {
                 this.emit(ToggleButton.EventOff);
             }

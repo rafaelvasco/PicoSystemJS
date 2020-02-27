@@ -1,5 +1,6 @@
 import App from "components/App";
 import "main.css";
+import "ui.css";
 
 const main = async () => {
     const app = new App();

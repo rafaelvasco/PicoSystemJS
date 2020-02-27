@@ -1,10 +1,8 @@
 #sprite-editor-scene {
     display: grid;
-    height: 100%;
     grid-template-columns: 0.5fr 2fr 0.5fr;
-    grid-template-rows: repeat(3, 1fr);
-    padding-left: 20px;
-    padding-right: 20px;
+    grid-template-rows: repeat(auto-fit, minmax(400px, 1fr));
+    padding: 20px;
 }
 
 #sprite-editor-scene > #palette {
@@ -16,7 +14,7 @@
 #sprite-editor-scene > #tool-box {
     /* row start, col start, row end, col end */
     grid-area: 2 / 1 / 4 / 2;
-    align-self: flex-start;
+    align-self: flex-end;
 }
 
 #sprite-editor-scene > #sprite-editor {
@@ -28,8 +26,8 @@
 
 #sprite-editor-scene > #mod-box {
     /* row start, col start, row end, col end */
-    grid-area: 2 / 3 / 2 / 4;
-    align-self: center;
+    grid-area: 2 / 3 / 4 / 4;
+    align-self: flex-end;
     justify-self: right;
 }
 

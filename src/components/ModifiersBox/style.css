@@ -5,34 +5,16 @@
     border: 1px solid var(--modbox-border-col);
     padding: var(--modbox-padding);
     box-shadow: 0 0 4px 4px var(--modbox-shadow-col);
-}
-
-#mod-box > .button {
-    width: 100%;
-    height: 50px;
-    box-shadow: 0 0 4px 4px rgba(0, 0, 0, 0.27);
-    background-color: rgb(61, 61, 61);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: white;
-    font-weight: bold;
-    text-transform: uppercase;
-    margin-bottom: 2px;
-    font-size: 12px;
-    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    display: flex;
+    flex-direction: column;
 }
 
 #mod-box > .button:last-child {
     margin-bottom: 0;
 }
 
-#mod-box > .button:hover {
-    background-color: rgb(66, 66, 66);
-}
-
-#mod-box > .button:active {
-    background-color: rgb(50, 50, 50);
-    border-bottom: 1px solid rgb(100, 100, 100);
-    border-right: 1px solid rgb(100, 100, 100);
+#mod-box > .btn {
+    padding: 0.6rem;
 }
 
 #mod-box > #h-mirror-toggle.on, #mod-box > #v-mirror-toggle.on {

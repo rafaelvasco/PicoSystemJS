@@ -1,0 +1,102 @@
+
+/* ======= BUTTON ========================================================== */
+.btn {
+    user-select: none;
+    position: relative;
+    letter-spacing: 0.025em;
+    font-size: 0.6rem;
+    border-radius: 0.125rem;
+    padding: 0.6rem 2rem;
+    outline: none;
+    color: #000;
+    background-color: #c0c0c0;
+    border-color: #111;
+}
+
+.btn:before,
+.btn:after {
+    content: "";
+    position: absolute;
+    box-sizing: border-box;
+    display: block;
+    background: transparent;
+    z-index: 9;
+    top: 0;
+    left: 0;
+}
+
+.btn:before {
+    width: 100%;
+    height: 100%;
+    border-top: 2px solid white;
+    border-left: 2px solid white;
+    border-right: 2px solid #858585;
+    border-bottom: 2px solid #858585;
+}
+
+.btn:not(:disabled):active:before,
+.btn:not(:disabled):active:focus:before {
+    border-color: transparent;
+    color: #000;
+}
+
+.btn:not(:disabled):active {
+    transform: translateY(1px);
+}
+
+.btn:hover {
+    color: #000;
+    background-color: #cecece;
+}
+
+.btn:disabled {
+    color: #000;
+    background-color: #c0c0c0;
+    border-color: #c0c0c0;
+}
+
+.btn:not(:disabled):active {
+    background-color: #c0c0c0;
+    border-color: #111;
+}
+
+/* ======= DIALOG ========================================================== */
+
+.dialog {
+    border-top: 2px solid white;
+    border-left: 2px solid white;
+    border-right: 2px solid #393939;
+    border-bottom: 2px solid #393939;
+    border-radius: 0;
+    background: #c0c0c0;
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    word-wrap: break-word;
+}
+
+.dialog-header {
+    position: relative;
+    background: #000181;
+    color: white;
+    position: relative;
+    background: #808080;
+    font-size: 0.65rem;
+    padding: 4px;
+    border-radius: 0;
+    border: 2px solid #bdbdbd;
+}
+
+.card-body {
+    padding: 10px 7px;
+    border-top: 2px solid #bdbdbd;
+    border-left: 3px solid #bdbdbd;
+    border-right: 3px solid #bdbdbd;
+    border-bottom: 2px solid #bdbdbd;
+}
+
+.card-footer {
+    padding: 10px 7px;
+}

@@ -51,6 +51,7 @@ export default class RectTool extends Tool {
             this._paintPixmap(editor);
             this._rect.zero();
         }
+        return true;
     }
 
     onMouseMove(editor, event) {

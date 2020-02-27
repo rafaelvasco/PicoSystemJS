@@ -1,0 +1,14 @@
+{
+    "Width": 214,
+    "Height": 300,
+    "Padding": 1,
+    "BackColor": "#333",
+    "BorderColor": "#777",
+    "Font": "bold 12px Arial",
+    "TextColor": "white",
+    "SelectList": {
+        "BackColor": "#333",
+        "BorderColor": "#333",
+        "ItemSelectColor": "#111"
+    }
+}

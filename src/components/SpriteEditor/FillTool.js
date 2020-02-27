@@ -72,4 +72,8 @@ export default class FillTool extends Tool {
 
         return true;
     }
+
+    onMouseUp(editor, event) {
+        return true;
+    }
 }

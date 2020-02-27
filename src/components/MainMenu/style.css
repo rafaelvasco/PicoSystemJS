@@ -1,0 +1,16 @@
+#main-menu {
+    padding: 5px;
+    background: #555;
+    height: 50px;
+    width: 100%;
+    display: grid;
+    grid-auto-flow: column;
+    justify-content: start;
+    align-items: stretch;
+    flex-shrink: 0;
+}
+
+#main-menu > .btn {
+    margin-left: 5px;
+}
+

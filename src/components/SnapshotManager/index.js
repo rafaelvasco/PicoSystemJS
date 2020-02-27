@@ -2,74 +2,86 @@ import CanvasElement from "../CanvasElement";
 import CanvasSelectList from "../CanvasControls/CanvasSelectList";
 import Rect from "../../model/Rect";
 
-export default class SnapshotManager extends CanvasElement {
+import Props from "../../properties/snapshotManager.json";
 
-    static Width = 214;
-    static Height = 300;
-    static Padding = 1;
+export default class SnapshotManager extends CanvasElement {
 
     static Events = {
         SnapshotSelected: 0
     };
 
     constructor () {
-        super("snapshot-manager", SnapshotManager.Width, SnapshotManager.Height);
-        const padding = SnapshotManager.Padding;
+        super("snapshot-manager", Props.Width, Props.Height);
+
+        this._props = Props;
+
+        const padding = Props.Padding;
+
         this._itemSelect = new CanvasSelectList({
             parent: this,
             style: {
-                backColor: "#222",
-                borderColor: "#222",
-                itemSelectColor: "#333",
-                font: "bold 12px Arial",
-                textColor: "white"
+                backColor: this._props.SelectList.BackColor,
+                borderColor: this._props.SelectList.BorderColor,
+                itemSelectColor: this._props.SelectList.ItemSelectColor,
+                font: this._props.Font,
+                textColor: this._props.TextColor
             },
             bounds: new Rect(padding, padding, this.width - padding * 2, this.height - padding * 2)
            
         });
+
+        this.addControl(this._itemSelect);
+
         this._itemSelect.on(CanvasSelectList.ChangeEvent, this._onListSelect, this);
         this.paint();
     }
 
-    _onListSelect(item) {
-        this.emit(SnapshotManager.Events.SnapshotSelected, item.value);
+    _onListSelect(index) {
+        this.emit(SnapshotManager.Events.SnapshotSelected, index);
     }
 
-    addSnapshot(snapshot) {
-        this._itemSelect.addItem(snapshot.label, snapshot.key);
+    undo() {
+        let newSelectedIndex = this._itemSelect.currentIndex-1;
+
+        if(newSelectedIndex < 0) {
+            newSelectedIndex = 0;
+        }
+
+        this._itemSelect.selectItem(newSelectedIndex);
+
+        this.emit(SnapshotManager.Events.SnapshotSelected, newSelectedIndex);
+    }
+
+    redo() {
+
+        let newSelectedIndex = this._itemSelect.currentIndex+1;
+
+        if (newSelectedIndex > this._itemSelect.length-1) {
+            newSelectedIndex = this._itemSelect.length-1;
+        }
+
+        this._itemSelect.selectItem(newSelectedIndex);
+
+        this.emit(SnapshotManager.Events.SnapshotSelected, newSelectedIndex);
+    }
+
+    updateSnapshotList(snapshots, currentSnapshotIndex) {
+        this._itemSelect.clear();
+        for(let i = 0; i < snapshots.length; ++i) {
+            const snapshot = snapshots[i];
+            this._itemSelect.addItem(snapshot.label, snapshot.key);
+        }
+        this._itemSelect.selectItem(currentSnapshotIndex);
         this.paint();
-    }
-
-    onMouseDown(e) {
-        e.preventDefault();
-        if (this._itemSelect.onMouseDown(e.button, e.offsetX, e.offsetY)) {
-            this.paint();
-            return;
-        }
-    }
-
-    onMouseUp(e) {
-        if (this._itemSelect.onMouseUp(e)) {
-            this.paint();
-            return;
-        }
-    }
-
-    onMouseMove(e) {
-        const x = e.offsetX;
-        const y = e.offsetY;
-        if (this._itemSelect.onMouseMove(x, y)) {
-            this.paint();
-            return;
-        }
     }
 
     paint() {
         const g = this._gfx;
-        g.fillStyle = "#333";
+        g.fillStyle = this._props.BackColor;
         g.fillRect(0, 0, this.width, this.height);
-        g.strokeStyle = "#777";
+        g.strokeStyle = this._props.BorderColor;
         g.strokeRect(0, 0, this.width, this.height);
-        this._itemSelect.paint(g);
+
+        super.paint();
     }
 }

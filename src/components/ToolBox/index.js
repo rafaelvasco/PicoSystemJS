@@ -3,21 +3,17 @@ import "./style.css";
 import ToggleButton from "../ToggleButton";
 
 export default class ToolBox extends Element {
+
     static SelectEvent = 0;
 
     constructor() {
-        super("tool-box");
-        this._div;
+
+        super({id: "tool-box"});
         this._penBtn;
         this._fillBtn;
         this._manipulateBtn;
         this._rectBtn;
         this._toolBtns = {};
-        this._initElements();
-    }
-
-    get root() {
-        return this._div;
     }
 
     populate(tools, firstActive) {
@@ -37,7 +33,7 @@ export default class ToolBox extends Element {
 
             this._toolBtns[toolName] = btn;
 
-            this._div.append(btn.root);
+            this.add(btn);
         }
     }
 
@@ -45,10 +41,5 @@ export default class ToolBox extends Element {
         if(this._toolBtns[toolName]) {
             this._toolBtns[toolName].setOn(true, true);
         }
-    }
-
-    _initElements() {
-        this._div = document.createElement("div");
-        this._div.setAttribute("id", this.id);
     }
 }

@@ -12,6 +12,9 @@ import MoveTool from "./MoveTool";
 import RectTool from "./RectTool";
 import LineTool from "./LineTool";
 import OvalTool from "./OvalTool";
+import { clampInArray } from "../../model/Calculate";
+import { Keys } from "../../model/Keys";
+import { MouseButtons } from "../../model/MouseButtons";
 
 class MouseEvent {
     constructor() {
@@ -22,7 +25,6 @@ class MouseEvent {
 }
 
 export default class SpriteEditor extends CanvasElement {
-
     static Ref;
 
     static PickerAttribs = {
@@ -30,30 +32,33 @@ export default class SpriteEditor extends CanvasElement {
         OffsetY: -32,
         Width: 32,
         Height: 32
-    }
+    };
 
     static Actions = {
         ResetView: 0
-    }
+    };
 
     static Events = {
         PixmapChanged: 0,
         SnapshotSaved: 1
-    }
+    };
 
     static MaxHistory = 16;
-
-    static SnapshotIndex = 0;
+    static NewSpriteSnapshotName = 'New Sprite';
+    static ClearSnapshotName = 'Clear';
+    static BgColor1 = new ColorRgba(200, 200, 200);
+    static BgColor2 = new ColorRgba(240, 240, 240);
+    static BgCellSize = 8;
 
     constructor(width, height) {
         super("sprite-editor", width, height);
         SpriteEditor.Ref = this;
         this._pixelSize = 4;
-        this._pixmap = Pixmap.create(width, height);
-        this._overlay = Pixmap.create(width, height);
-        this._snapshots = {};
-        this._currentSnapshot = null;
-        this._untransformedOverlay = Pixmap.create(width, height);
+        this._currentSnapshotIndex = 0;
+        this._pixmap = null;
+        this._overlay = null;
+        this._untransformedOverlay = null;
+        this._snapshots = [];
         this._bgRect = new Rect(0, 0, width, height);
         this._savedTransforms = [];
         this._mousePos = new Point();
@@ -75,14 +80,21 @@ export default class SpriteEditor extends CanvasElement {
         this._checkerBrush = null;
         this._mirrorX = false;
         this._mirrorY = false;
-        this._ctrlDown = false;
         this._mouseDown = false;
+        this._samplingColor = false;
         this._sampledColor = null;
-
         this._initializeBackground();
         this._initializeTools();
+        this.paint();
+    }
+
+    load(pixmap) {
+        this._pixmap = pixmap;
+        this._overlay = Pixmap.create(pixmap.width, pixmap.height);
+        this._untransformedOverlay = Pixmap.create(pixmap.width, pixmap.height);
         this._recalculateViewCenter();
         this._updateTransformMatrices();
+        this.saveSnapshot(SpriteEditor.NewSpriteSnapshotName);
         this.paint();
     }
 
@@ -91,6 +103,7 @@ export default class SpriteEditor extends CanvasElement {
         this._overlay = null;
         this._untransformedOverlay = null;
         this._savedTransforms = [];
+        this.paint();
     }
 
     get pixelsize() {
@@ -180,14 +193,15 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     _initializeBackground() {
-        const color1 = new ColorRgba(200, 200, 200);
-        const color2 = new ColorRgba(240, 240, 240);
-        const bgPixmap = PixmapUtils.buildCheckerBoardTile(8, color1, color2);
+        const color1 = SpriteEditor.BgColor1;
+        const color2 = SpriteEditor.BgColor2;
+        const cellSize = SpriteEditor.BgCellSize;
+        const bgPixmap = PixmapUtils.buildCheckerBoardTile(cellSize, color1, color2);
         this._checkerBrush = new Brush(this.gfx, bgPixmap);
     }
 
     processAction(action) {
-        switch(action) {
+        switch (action) {
             case SpriteEditor.Actions.ResetView:
                 this.resetView();
                 break;
@@ -195,15 +209,19 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     processKeyEvent(key, down) {
-
-        if (key === 'Control' && this._mouseDown === false) {
-            this._ctrlDown = down;
+        if (!this._pixmap) return;
+        if (key === Keys.Space && this._mouseDown === false) {
             this._untransformedOverlay.erase();
-            this.sampleColor();
-            this.paint();
-            if (down === false) {
+            if (down === true) {
+                this._samplingColor = true;
+                this.sampleColor();
+                this.paint();
+            } else {
                 this._sampledColor = null;
+                this._samplingColor = false;
             }
+
+            this.paint();
             return;
         }
 
@@ -219,31 +237,37 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     resize(width, height) {
+
         super.resize(width, height);
-
-        this._recalculateViewCenter();
-        this._updateTransformMatrices();
-
+        if (this._pixmap) {
+            this._recalculateViewCenter();
+            this._updateTransformMatrices();
+        }
         this.paint();
     }
 
     mirrorContentHorizontally() {
+        if (!this._pixmap) return;
         this._pixmap.mirrorHorizontal();
         this.paint();
     }
 
     mirrorContentVertically() {
+        if (!this._pixmap) return;
         this._pixmap.mirrorVertical();
         this.paint();
     }
 
     clear() {
+        if (!this._pixmap) return;
         this._pixmap.erase();
         this.paint();
         this.emit(SpriteEditor.Events.PixmapChanged);
+        this.saveSnapshot(SpriteEditor.ClearSnapshotName);
     }
 
     translate(dx, dy) {
+        if (!this._pixmap) return;
         this._viewTransform.translate(dx, dy);
 
         this._updateTransformMatrices();
@@ -252,6 +276,7 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     zoom(factor) {
+        if (!this._pixmap) return;
         this._viewTransform.reset();
 
         let center = new Point(
@@ -263,6 +288,7 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     zoomToPoint(factor, point) {
+        if (!this._pixmap) return;
         this._viewTransform.translate(point.x, point.y);
         this._viewTransform.scale(factor);
         this._viewTransform.translate(-point.x, -point.y);
@@ -273,6 +299,7 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     zoomToFit() {
+        if (!this._pixmap) return;
         const factorX = Math.ceil(this.width / this._pixmap.width) | 0;
         const factorY = Math.ceil(this.height / this._pixmap.height) | 0;
         const factor = factorX < factorY ? factorX : factorY;
@@ -285,6 +312,7 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     resetView() {
+        if (!this._pixmap) return;
         this._viewTransform.reset();
         this._recalculateViewCenter();
         this._updateTransformMatrices();
@@ -293,26 +321,29 @@ export default class SpriteEditor extends CanvasElement {
 
     saveSnapshot(label) {
         const pixmap = Pixmap.createFromPixmap(this.pixmap);
-        const key = SpriteEditor.SnapshotIndex++;
         const snapshot = {
             pixmap: pixmap,
-            key: key,
             label: label
         };
-        this._snapshots[key] = snapshot;
-        this._currentSnapshot = snapshot;
-        this.emit(SpriteEditor.Events.SnapshotSaved, snapshot);
-    }
-
-    saveFirstSnapshot() {
-        this.saveSnapshot('New Sprite');
-    }
-
-    setSnapshot(snapshotKey) {
-        const snapshot = this._snapshots[snapshotKey];
-        if(snapshot) {
-            this._pixmap = snapshot.pixmap;
+        if (this._currentSnapshotIndex < this._snapshots.length - 1) {
+            this._snapshots.splice(this._currentSnapshotIndex + 1);
         }
+        this._snapshots.push(snapshot);
+        this._currentSnapshotIndex = this._snapshots.length - 1;
+        this.emit(
+            SpriteEditor.Events.SnapshotSaved,
+            this._snapshots,
+            this._currentSnapshotIndex
+        );
+    }
+
+    setSnapshot(index) {
+        if (!this._pixmap) return;
+        this._currentSnapshotIndex = clampInArray(this._snapshots, index);
+        this._pixmap.erase();
+        this._pixmap.pastePixmap(
+            this._snapshots[this._currentSnapshotIndex].pixmap
+        );
         this.paint();
     }
 
@@ -352,17 +383,14 @@ export default class SpriteEditor extends CanvasElement {
 
     onMouseDown(e) {
         e.preventDefault();
-
+        if (!this._pixmap) return;
         this._mouseDown = true;
 
-        if (this._ctrlDown) {
-            // PickColor
+        if (this._samplingColor === true) {
             this.sampleColor();
-            if (e.button === 0) {
+            if (e.button === MouseButtons.Left) {
                 this._primaryColor = this._sampledColor;
-                
-            }
-            else if (e.button === 2) {
+            } else if (e.button === MouseButtons.Right) {
                 this._secondaryColor = this._sampledColor;
             }
             this.paint();
@@ -370,7 +398,7 @@ export default class SpriteEditor extends CanvasElement {
         }
 
         // Tooling //////////////////////////////////////////////////////
-        if (e.button === 0 || e.button === 2) {
+        if (e.button === MouseButtons.Left || e.button === MouseButtons.Right) {
             this._mouseEvent.button = e.button;
 
             if (
@@ -380,7 +408,7 @@ export default class SpriteEditor extends CanvasElement {
                 this.emit(SpriteEditor.Events.PixmapChanged);
             }
             // Panning /////////////////////////////////////////////////
-        } else if (e.button === 1) {
+        } else if (e.button === MouseButtons.Middle) {
             this._lastPanPos.x = e.offsetX;
             this._lastPanPos.y = e.offsetY;
 
@@ -390,10 +418,12 @@ export default class SpriteEditor extends CanvasElement {
 
     onMouseUp(e) {
 
+        if (!this._pixmap) return;
         this._mouseDown = false;
 
-        if(this._ctrlDown && this._sampledColor !== null) {
+        if (this._samplingColor === true && this._sampledColor !== null) {
             this.paint();
+            return;
         }
 
         this._mouseEvent.button = e.button;
@@ -406,6 +436,8 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     onMouseMove(e) {
+
+        if (!this._pixmap) return;
         const mouseX = e.offsetX;
         const mouseY = e.offsetY;
 
@@ -420,7 +452,7 @@ export default class SpriteEditor extends CanvasElement {
         this._mousePos.x |= 0;
         this._mousePos.y |= 0;
 
-        if (this._ctrlDown) {
+        if (this._samplingColor === true) {
             this.sampleColor();
             this.paint();
             return;
@@ -448,10 +480,15 @@ export default class SpriteEditor extends CanvasElement {
     }
 
     sampleColor() {
-        this._sampledColor = this._pixmap.getColorAt(this._mousePos.x, this._mousePos.y);
+        if (!this._pixmap) return;
+        this._sampledColor = this._pixmap.getColorAt(
+            this._mousePos.x,
+            this._mousePos.y
+        );
     }
 
     onMouseWheel(e) {
+        if (!this._pixmap) return;
         var delta = e.wheelDelta
             ? e.wheelDelta / 40
             : e.detail
@@ -514,8 +551,18 @@ export default class SpriteEditor extends CanvasElement {
         const g = this._gfx;
 
         g.setTransform(1, 0, 0, 1, 0, 0);
-        g.fillStyle = "#333";
+
+        g.fillStyle = '#111';
         g.fillRect(0, 0, this.width, this.height);
+
+        g.lineWidth = 1;
+        g.strokeStyle = '#666';
+        g.strokeRect(1, 1, this.width-2, this.height-2);
+
+        if (!this._pixmap) {
+            return;
+        }
+
         g.fillStyle = this._checkerBrush.pattern;
 
         // Draw Background /////////////////////////////////////////
@@ -525,57 +572,68 @@ export default class SpriteEditor extends CanvasElement {
         g.setTransform(1, 0, 0, 1, 0, 0);
         g.fillRect(bgRect.x, bgRect.y, bgRect.width, bgRect.height);
 
-        if (this._pixmap) {
-            // Draw Sprite /////////////////////////////////////////
+        // Draw Sprite /////////////////////////////////////////
 
-            const transfVec = this._combinedTransform._m;
+        const transfVec = this._combinedTransform._m;
 
-            g.setTransform(
-                transfVec[0],
-                transfVec[1],
-                transfVec[2],
-                transfVec[3],
-                transfVec[4],
-                transfVec[5]
+        g.setTransform(
+            transfVec[0],
+            transfVec[1],
+            transfVec[2],
+            transfVec[3],
+            transfVec[4],
+            transfVec[5]
+        );
+
+        g.drawImage(this._pixmap.canvas, 0, 0);
+
+        if (this._samplingColor === true && this._sampledColor !== null) {
+            const pickerAttribs = SpriteEditor.PickerAttribs;
+            const x1 =
+                this._untransormedMousePos.x -
+                pickerAttribs.Width / 2 +
+                pickerAttribs.OffsetX;
+            const y1 =
+                this._untransormedMousePos.y -
+                pickerAttribs.Height / 2 +
+                pickerAttribs.OffsetY;
+            const x2 =
+                this._untransormedMousePos.x +
+                pickerAttribs.Width / 2 +
+                pickerAttribs.OffsetX;
+            const y2 =
+                this._untransormedMousePos.y +
+                pickerAttribs.Height / 2 +
+                pickerAttribs.OffsetY;
+
+            this._untransformedOverlay.erase();
+            this._untransformedOverlay.drawRect(
+                x1,
+                y1,
+                x2,
+                y2,
+                ColorRgba.Black,
+                2
             );
 
-            g.drawImage(this._pixmap.canvas, 0, 0);
-
-            if (this._ctrlDown && this._sampledColor !== null) {
-
-                const pickerAttribs = SpriteEditor.PickerAttribs;
-                const x1 = this._untransormedMousePos.x - pickerAttribs.Width/2 + pickerAttribs.OffsetX;
-                const y1 = this._untransormedMousePos.y - pickerAttribs.Height/2 + pickerAttribs.OffsetY;
-                const x2 = this._untransormedMousePos.x + pickerAttribs.Width/2 + pickerAttribs.OffsetX;
-                const y2 = this._untransormedMousePos.y + pickerAttribs.Height/2 + pickerAttribs.OffsetY;
-
-                this._untransformedOverlay.erase();
-                this._untransformedOverlay.drawRect(
-                    x1,
-                    y1,
-                    x2,
-                    y2, 
-                    ColorRgba.Black,
-                    2);
-
-                this._untransformedOverlay.fillRectNative( 
-                    x1+2, 
-                    y1+2, 
-                    x2,
-                    y2, 
-                    this._sampledColor.alpha > 0 ? this._sampledColor : this._checkerBrush.pattern,
-                );
-            }
-
-            // Draw Overlays
-
-            g.globalCompositeOperation = "difference";
-            g.drawImage(this._overlay.canvas, 0, 0);
-            g.globalCompositeOperation = "source-over";
-            
-            g.setTransform(1, 0, 0, 1, 0, 0);
-            g.drawImage(this._untransformedOverlay.canvas, 0, 0);
-            
+            this._untransformedOverlay.fillRectNative(
+                x1 + 2,
+                y1 + 2,
+                x2,
+                y2,
+                this._sampledColor.alpha > 0
+                    ? this._sampledColor
+                    : this._checkerBrush.pattern
+            );
         }
+
+        // Draw Overlays
+
+        g.globalCompositeOperation = "difference";
+        g.drawImage(this._overlay.canvas, 0, 0);
+        g.globalCompositeOperation = "source-over";
+
+        g.setTransform(1, 0, 0, 1, 0, 0);
+        g.drawImage(this._untransformedOverlay.canvas, 0, 0);
     }
 }
